@@ -1051,7 +1051,7 @@ async function handleRequest(req: Request) {
   // Load any namespaces needed for the page
   await i18n.loadNamespace('common')
 
-  const { html, head } = await renderWithHead(h(App, { i18n }))
+  const { html, head } = await renderWithHead(<App i18n={i18n} />)
   // ...
 }
 ```

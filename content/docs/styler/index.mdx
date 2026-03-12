@@ -27,7 +27,7 @@ const Button = styled('button')`
 `
 
 // Usage
-h(Button, { primary: true }, "Click me")
+<Button primary={true}>Click me</Button>
 ```
 
 ## `css` Tagged Template
@@ -227,8 +227,8 @@ const Alert = styled('div')`
   }};
 `
 
-h(Alert, { variant: 'error' }, "Something went wrong")
-h(Alert, { variant: 'success' }, "Operation completed")
+<Alert variant="error">Something went wrong</Alert>
+<Alert variant="success">Operation completed</Alert>
 ```
 
 Different prop values produce different CSS and therefore different class names. Same prop values produce the same class name (deduplication via the sheet cache).
@@ -244,13 +244,13 @@ const Text = styled('span')`
 `
 
 // Renders as a <p> tag instead of <span>
-h(Text, { as: 'p' }, "Paragraph text")
+<Text as="p">Paragraph text</Text>
 
 // Renders as an <h1>
-h(Text, { as: 'h1' }, "Heading text")
+<Text as="h1">Heading text</Text>
 
 // Renders as a <label>
-h(Text, { as: 'label' }, "Label text")
+<Text as="label">Label text</Text>
 ```
 
 When `as` is not provided, the original tag is used.
@@ -276,7 +276,7 @@ const Box = styled('div', {
 `
 
 // 'spacing' is used for styles but not forwarded to the DOM
-h(Box, { spacing: 16, id: 'my-box' })
+<Box spacing={16} id="my-box" />
 // Renders: <div id="my-box" class="ns-...">
 ```
 
@@ -298,10 +298,10 @@ Styled components merge user-provided `class` or `className` props with the gene
 ```ts
 const Box = styled('div')`display: flex;`
 
-h(Box, { class: 'custom-class' })
+<Box class="custom-class" />
 // class="ns-abc123 custom-class"
 
-h(Box, { className: 'react-style' })
+<Box className="react-style" />
 // class="ns-abc123 react-style"
 ```
 
@@ -309,7 +309,7 @@ When the CSS is empty, only the user class is applied:
 
 ```ts
 const Empty = styled('div')``
-h(Empty, { class: 'only-this' })
+<Empty class="only-this" />
 // class="only-this"
 ```
 
@@ -321,13 +321,13 @@ Children are passed through to the underlying element:
 const Wrapper = styled('div')`padding: 16px;`
 
 // Single child
-h(Wrapper, null, "Hello")
+<Wrapper>Hello</Wrapper>
 
 // Multiple children
-h(Wrapper, null, h('span', null, 'A'), h('span', null, 'B'))
+<Wrapper><span>A</span><span>B</span></Wrapper>
 
 // Array children
-h(Wrapper, { children: ['a', 'b', 'c'] })
+<Wrapper children={['a', 'b', 'c']} />
 ```
 
 ### Empty CSS
@@ -677,9 +677,9 @@ const theme = {
 }
 
 // Provide the theme at the app root
-h(ThemeContext.Provider, { value: theme },
-  h(App, null)
-)
+<ThemeContext.Provider value={theme}>
+  <App />
+</ThemeContext.Provider>
 ```
 
 ### Accessing the Theme
@@ -690,14 +690,12 @@ Use `useTheme()` inside any component within the provider tree:
 function ThemedCard(props) {
   const theme = useTheme()
 
-  return h('div', {
-    style: {
+  return <div style={{
       padding: `${theme.spacing.md}px`,
       borderRadius: `${theme.radii.md}px`,
       fontFamily: theme.fonts.body,
       color: theme.colors.text,
-    },
-  }, props.children)
+    }}>{props.children}</div>
 }
 ```
 
@@ -789,10 +787,10 @@ const darkTheme = {
 function App() {
   const isDark = signal(false)
 
-  return () => h(
-    ThemeContext.Provider,
-    { value: isDark() ? darkTheme : lightTheme },
-    h(MainContent, null),
+  return () => (
+    <ThemeContext.Provider value={isDark() ? darkTheme : lightTheme}>
+      <MainContent />
+    </ThemeContext.Provider>
   )
 }
 ```
@@ -939,9 +937,9 @@ const Button = styled('button')`
 `
 
 // Usage
-h(Button, { variant: 'primary', size: 'lg' }, "Submit")
-h(Button, { variant: 'outline' }, "Cancel")
-h(Button, { variant: 'danger', size: 'sm' }, "Delete")
+<Button variant="primary" size="lg">Submit</Button>
+<Button variant="outline">Cancel</Button>
+<Button variant="danger" size="sm">Delete</Button>
 ```
 
 ### Card Component
@@ -980,14 +978,14 @@ const CardFooter = styled('div')`
 `
 
 // Usage
-h(Card, null,
-  h(CardHeader, null, "Card Title"),
-  h(CardBody, null, "Card content goes here..."),
-  h(CardFooter, null,
-    h(Button, { variant: 'outline' }, "Cancel"),
-    h(Button, { variant: 'primary' }, "Save"),
-  ),
-)
+<Card>
+  <CardHeader>Card Title</CardHeader>
+  <CardBody>Card content goes here...</CardBody>
+  <CardFooter>
+    <Button variant="outline">Cancel</Button>
+    <Button variant="primary">Save</Button>
+  </CardFooter>
+</Card>
 ```
 
 ### Input with States
@@ -1070,8 +1068,8 @@ const Badge = styled('span')`
   }};
 `
 
-h(Badge, { color: 'green' }, "Active")
-h(Badge, { color: 'red' }, "Error")
+<Badge color="green">Active</Badge>
+<Badge color="red">Error</Badge>
 ```
 
 ## Performance: Static vs Dynamic Splitting

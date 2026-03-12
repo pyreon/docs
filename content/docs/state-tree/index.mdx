@@ -847,11 +847,11 @@ addMiddleware(counter, createLogger('Counter'))
 Auto-save to localStorage after every action:
 
 ```ts
-function createPersistenceMiddleware(key: string) {
+function createPersistenceMiddleware(key: string, root: Instance) {
   return (call: ActionCall, next: (call: ActionCall) => unknown) => {
     const result = next(call)
     // Save snapshot after every action
-    const snapshot = getSnapshot(call.path === '/' ? counter : counter)
+    const snapshot = getSnapshot(root)
     localStorage.setItem(key, JSON.stringify(snapshot))
     return result
   }

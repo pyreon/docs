@@ -87,27 +87,27 @@ export default defineConfig({
 
 **src/main.ts:**
 
-```ts
+```tsx
 import { mount } from "@pyreon/runtime-dom"
-import { h } from "@pyreon/core"
 import { App } from "./App"
 
-mount(document.getElementById("app")!, h(App, null))
+mount(document.getElementById("app")!, <App />)
 ```
 
 **src/App.tsx:**
 
 ```tsx
-import { h } from "@pyreon/core"
 import { signal } from "@pyreon/reactivity"
 
 export function App() {
   const count = signal(0)
 
-  return h("div", null,
-    h("h1", null, "Hello Pyreon"),
-    h("p", null, () => `Count: ${count()}`),
-    h("button", { onClick: () => count.update(c => c + 1) }, "Increment"),
+  return (
+    <div>
+      <h1>Hello Pyreon</h1>
+      <p>{() => `Count: ${count()}`}</p>
+      <button onClick={() => count.update(c => c + 1)}>Increment</button>
+    </div>
   )
 }
 ```
@@ -517,10 +517,9 @@ export default defineConfig({
 
 ### src/entry-server.ts
 
-```ts
+```tsx
 import { renderWithHead } from "@pyreon/head"
 import { createRouter, prefetchLoaderData, serializeLoaderData } from "@pyreon/router"
-import { h } from "@pyreon/core"
 import { routes } from "./routes"
 import { App } from "./App"
 
@@ -536,7 +535,7 @@ export async function handler(req: Request): Promise<Response> {
 
   // Render the app to HTML with head management
   const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(
-    h(App, { router })
+    <App router={router} />
   )
 
   const htmlAttrStr = Object.entries(htmlAttrs)
@@ -567,11 +566,10 @@ export async function handler(req: Request): Promise<Response> {
 
 ### src/entry-client.ts
 
-```ts
+```tsx
 import { hydrateRoot } from "@pyreon/runtime-dom"
 import { createRouter, hydrateLoaderData } from "@pyreon/router"
 import { createHeadContext, HeadProvider } from "@pyreon/head"
-import { h } from "@pyreon/core"
 import { routes } from "./routes"
 import { App } from "./App"
 
@@ -587,23 +585,24 @@ const headCtx = createHeadContext()
 // Hydrate the server-rendered HTML
 hydrateRoot(
   document.getElementById("app")!,
-  h(HeadProvider, { context: headCtx }, h(App, { router }))
+  <HeadProvider context={headCtx}><App router={router} /></HeadProvider>
 )
 ```
 
 ### src/App.tsx
 
 ```tsx
-import { h } from "@pyreon/core"
 import { RouterOutlet, Link } from "@pyreon/router"
 
 export function App(props: { router: any }) {
-  return h("div", { class: "app" },
-    h("nav", null,
-      h(Link, { to: "/" }, "Home"),
-      h(Link, { to: "/about" }, "About"),
-    ),
-    h(RouterOutlet, { router: props.router }),
+  return (
+    <div class="app">
+      <nav>
+        <Link to="/">Home</Link>
+        <Link to="/about">About</Link>
+      </nav>
+      <RouterOutlet router={props.router} />
+    </div>
   )
 }
 ```
@@ -631,14 +630,13 @@ export const routes = [
 
 For simpler apps that do not need routing, the SSR entry can be straightforward:
 
-```ts
+```tsx
 // src/entry-server.ts
 import { renderToString } from "@pyreon/runtime-server"
-import { h } from "@pyreon/core"
 import { App } from "./App"
 
 export async function handler(req: Request): Promise<Response> {
-  const html = await renderToString(h(App, null))
+  const html = await renderToString(<App />)
 
   return new Response(
     `<!DOCTYPE html>
@@ -658,15 +656,14 @@ export async function handler(req: Request): Promise<Response> {
 }
 ```
 
-```ts
+```tsx
 // src/entry-client.ts
 import { hydrateRoot } from "@pyreon/runtime-dom"
-import { h } from "@pyreon/core"
 import { App } from "./App"
 
 hydrateRoot(
   document.getElementById("app")!,
-  h(App, null)
+  <App />
 )
 ```
 

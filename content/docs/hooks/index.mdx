@@ -311,10 +311,10 @@ import { h } from '@pyreon/core'
 
 const { hovered, props } = useHover()
 
-h('div', {
-  ...props,
-  class: () => hovered() ? 'bg-blue-100' : 'bg-gray-100',
-}, "Hover me")
+<div
+  {...props}
+  class={() => hovered() ? 'bg-blue-100' : 'bg-gray-100'}
+>Hover me</div>
 ```
 
 ### Tooltip Example
@@ -387,10 +387,10 @@ import { h } from '@pyreon/core'
 
 const { focused, props } = useFocus()
 
-h('input', {
-  ...props,
-  class: () => focused() ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300',
-})
+<input
+  {...props}
+  class={() => focused() ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-300'}
+/>
 ```
 
 ### Focus Ring with Label
@@ -905,6 +905,7 @@ function useBreakpoint(breakpoints?: BreakpointMap): () => string
 | `md` | 768px |
 | `lg` | 992px |
 | `xl` | 1200px |
+| `xxl` | 1400px |
 
 ### Example
 

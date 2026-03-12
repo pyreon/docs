@@ -1141,52 +1141,48 @@ Re-export of Pyreon's `h()` and `Fragment` for manual render function usage.
 **HTML elements:**
 
 ```tsx
-import { h } from '@pyreon/vue-compat'
-
 // <div class="card"><p>Hello</p></div>
-h('div', { class: 'card' }, h('p', null, 'Hello'))
+<div class="card"><p>Hello</p></div>
 ```
 
 **Components:**
 
 ```tsx
-h(UserCard, { name: 'Alice', email: 'alice@example.com' })
+<UserCard name="Alice" email="alice@example.com" />
 ```
 
 **Fragments (multiple root elements):**
 
 ```tsx
-import { h, Fragment } from '@pyreon/vue-compat'
-
-h(Fragment, null,
-  h('p', null, 'First'),
-  h('p', null, 'Second'),
-)
+<>
+  <p>First</p>
+  <p>Second</p>
+</>
 ```
 
 **Dynamic children:**
 
 ```tsx
 const items = ['Apple', 'Banana', 'Cherry']
-h('ul', null, ...items.map(item => h('li', null, item)))
+<ul>{items.map(item => <li>{item}</li>)}</ul>
 ```
 
 **Event handlers:**
 
 ```tsx
-h('button', {
-  onClick: () => count.value++,
-  onMouseEnter: () => console.log('hover'),
-}, 'Click me')
+<button
+  onClick={() => count.value++}
+  onMouseEnter={() => console.log('hover')}
+>Click me</button>
 ```
 
 **Style and class:**
 
 ```tsx
-h('div', {
-  class: 'container active',
-  style: { backgroundColor: 'blue', padding: '16px' },
-}, 'Content')
+<div
+  class="container active"
+  style={{ backgroundColor: 'blue', padding: '16px' }}
+>Content</div>
 ```
 
 In most cases, JSX is more ergonomic than `h()`. Use `h()` when you need programmatic VNode construction or when building utility libraries.

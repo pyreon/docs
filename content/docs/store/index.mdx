@@ -806,6 +806,151 @@ function createField<T>(initial: T): FormField<T> {
 }
 ```
 
+## Enhanced Store API
+
+Every store instance returned by `defineStore` is enhanced with `$`-prefixed methods for inspection, patching, subscriptions, and cleanup. These are added automatically — no extra setup needed.
+
+### `$id`
+
+The store's unique identifier:
+
+```ts
+const store = useCounter()
+console.log(store.$id) // "counter"
+```
+
+### `$state`
+
+A readonly snapshot of all signal values in the store:
+
+```ts
+const store = useCounter()
+console.log(store.$state) // { count: 0 }
+
+store.increment()
+console.log(store.$state) // { count: 1 }
+```
+
+### `$patch`
+
+Batch-update multiple signals in a single notification. Accepts either an object or a function:
+
+```ts
+const store = useUser()
+
+// Object form — sets matching signal keys
+store.$patch({ firstName: "Alice", lastName: "Smith" })
+
+// Function form — receives signal references for direct manipulation
+store.$patch((state) => {
+  state.firstName.set("Alice")
+  state.lastName.set("Smith")
+})
+```
+
+Patch mutations are batched via `batch()` and emit a single `$subscribe` notification with `type: "patch"`.
+
+### `$subscribe`
+
+Listen to all state changes in the store. The callback receives the mutation info and a snapshot of the current state:
+
+```ts
+const store = useCounter()
+
+const unsubscribe = store.$subscribe((mutation, state) => {
+  console.log(mutation.storeId)  // "counter"
+  console.log(mutation.type)     // "direct" or "patch"
+  console.log(mutation.events)   // [{ key: "count", oldValue: 0, newValue: 1 }]
+  console.log(state)             // { count: 1 }
+})
+
+// Trigger immediately with current state:
+store.$subscribe(callback, { immediate: true })
+
+// Stop listening:
+unsubscribe()
+```
+
+### `$onAction`
+
+Intercept action calls with before/after/error hooks:
+
+```ts
+const store = useCounter()
+
+const unsubscribe = store.$onAction((context) => {
+  console.log(`Action "${context.name}" called with args:`, context.args)
+
+  context.after((result) => {
+    console.log(`Action "${context.name}" completed with:`, result)
+  })
+
+  context.onError((error) => {
+    console.error(`Action "${context.name}" failed:`, error)
+  })
+})
+```
+
+### `$reset`
+
+Reset all signals to their initial values (the values from when `setup()` first ran):
+
+```ts
+const store = useCounter()
+store.increment()
+store.increment()
+console.log(store.count()) // 2
+
+store.$reset()
+console.log(store.count()) // 0
+```
+
+### `$dispose`
+
+Tear down the store entirely — unsubscribes all signal listeners, clears subscribers and action listeners, and removes the store from the registry:
+
+```ts
+const store = useCounter()
+store.$dispose()
+
+// Next call to useCounter() will re-run setup
+```
+
+## Plugins
+
+Register global plugins that run when any store is first created. Plugins receive the store instance and its ID:
+
+```ts
+import { addStorePlugin } from "@pyreon/store"
+
+// Logger plugin
+addStorePlugin(({ store, storeId }) => {
+  store.$subscribe((mutation, state) => {
+    console.log(`[${storeId}]`, mutation.type, mutation.events)
+  })
+})
+
+// Persistence plugin
+addStorePlugin(({ store, storeId }) => {
+  // Restore from localStorage
+  const saved = localStorage.getItem(`store:${storeId}`)
+  if (saved) {
+    store.$patch(JSON.parse(saved))
+  }
+
+  // Persist on change
+  store.$subscribe((_mutation, state) => {
+    localStorage.setItem(`store:${storeId}`, JSON.stringify(state))
+  })
+})
+```
+
+### StorePlugin type
+
+```ts
+type StorePlugin = (context: { store: any; storeId: string }) => void
+```
+
 ## Resetting Stores
 
 ### `resetStore(id)`
@@ -1130,6 +1275,27 @@ Destroy a store by ID so the next call to its hook re-runs the setup function.
 ### `resetAllStores()`
 
 Destroy all stores in the current registry. Useful for test teardown, HMR, and SSR cleanup.
+
+### `addStorePlugin(plugin)`
+
+Register a global plugin that runs when any store is first created.
+
+- **`plugin`** (`StorePlugin`) -- Function receiving `{ store, storeId }`.
+
+### Enhanced Store Instance Methods
+
+Every store returned by `defineStore` includes these `$`-prefixed methods:
+
+| Method | Description |
+|--------|-------------|
+| `$id` | The store's unique identifier string |
+| `$state` | Readonly snapshot of all signal values |
+| `$patch(obj)` | Batch-set signals from an object |
+| `$patch(fn)` | Batch-set signals via function receiving signal refs |
+| `$subscribe(cb, opts?)` | Listen to state changes, returns unsubscribe |
+| `$onAction(cb)` | Intercept action calls with after/error hooks, returns unsubscribe |
+| `$reset()` | Reset all signals to initial values |
+| `$dispose()` | Tear down the store and remove from registry |
 
 ### Re-exported from `@pyreon/reactivity`
 

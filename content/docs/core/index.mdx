@@ -262,72 +262,66 @@ import { h, Fragment } from "@pyreon/core"
 
 ### Creating Elements
 
-```ts
+```tsx
 // Simple element with text
-h("div", null, "Hello World")
+<div>Hello World</div>
 
 // Element with props
-h("div", { class: "container", id: "main" }, "Content")
+<div class="container" id="main">Content</div>
 
 // Element with reactive props
-h("div", { class: () => isActive() ? "active" : "inactive" })
+<div class={() => isActive() ? "active" : "inactive"} />
 
 // Element with event handlers
-h("button", { onClick: () => count.update(n => n + 1) }, "Click me")
+<button onClick={() => count.update(n => n + 1)}>Click me</button>
 
 // Element with style (string or object)
-h("div", { style: "color: red; font-size: 16px" })
-h("div", { style: { color: "red", fontSize: "16px" } })
-h("div", { style: () => ({ color: isError() ? "red" : "green" }) })
+<div style="color: red; font-size: 16px" />
+<div style={{ color: "red", fontSize: "16px" }} />
+<div style={() => ({ color: isError() ? "red" : "green" })} />
 ```
 
 ### Nesting Children
 
-```ts
+```tsx
 // Multiple children
-h("div", null,
-  h("h1", null, "Title"),
-  h("p", null, "Paragraph one"),
-  h("p", null, "Paragraph two")
-)
+<div>
+  <h1>Title</h1>
+  <p>Paragraph one</p>
+  <p>Paragraph two</p>
+</div>
 
 // Mixed children: strings, numbers, VNodes
-h("div", null,
-  "Text node",
-  42,
-  h("span", null, "Nested")
-)
+<div>
+  Text node
+  {42}
+  <span>Nested</span>
+</div>
 
 // Reactive children via accessor functions
-h("div", null,
-  () => count() > 0 ? h("span", null, "Positive") : h("span", null, "Zero or negative")
-)
+<div>
+  {() => count() > 0 ? <span>Positive</span> : <span>Zero or negative</span>}
+</div>
 ```
 
 ### Components
 
-```ts
+```tsx
 // Render a component
-h(Counter, { initial: 0 })
+<Counter initial={0} />
 
 // Component with children
-h(Card, { title: "Hello" },
-  h("p", null, "Card body")
-)
+<Card title="Hello">
+  <p>Card body</p>
+</Card>
 ```
 
 ### Fragments
 
 Fragments let you group children without adding a wrapper DOM element:
 
-```ts
+```tsx
 // Fragment (no wrapper element)
-h(Fragment, null,
-  h("span", null, "A"),
-  h("span", null, "B")
-)
-
-// Equivalent JSX
 <>
   <span>A</span>
   <span>B</span>
@@ -362,12 +356,12 @@ Children can be:
 
 `EMPTY_PROPS` is a shared empty object used when `h()` is called with `null` props. The renderer identity-checks against it to skip unnecessary prop application:
 
-```ts
+```tsx
 import { EMPTY_PROPS } from "@pyreon/core"
 
 // These produce the same result
-h("div", null, "Hello")
-h("div", EMPTY_PROPS, "Hello")
+<div>Hello</div>
+<div>Hello</div>
 ```
 
 ## JSX Runtime
@@ -1171,11 +1165,10 @@ function Tooltip(props: { text: string; children: VNodeChild }) {
 
 ### Suspense
 
-Shows a fallback while a lazy child component is still loading. Works with the `lazy()` helper from `@pyreon/react-compat` or `@pyreon/router`.
+Shows a fallback while a lazy child component is still loading. Works with the `lazy()` helper from `@pyreon/core` (or `@pyreon/react-compat`).
 
 ```tsx
-import { Suspense } from "@pyreon/core"
-import { lazy } from "@pyreon/react-compat"
+import { Suspense, lazy } from "@pyreon/core"
 
 const HeavyComponent = lazy(() => import("./HeavyComponent"))
 
@@ -1274,6 +1267,75 @@ Inner boundaries catch errors first. If an inner boundary is already in an error
 #### Error Boundary Internals
 
 `ErrorBoundary` uses a module-level stack of handler functions. During setup, it pushes a handler onto the stack. When a child component throws during mount, `dispatchToErrorBoundary()` invokes the innermost handler. The handler stores the error in a signal; when the signal becomes non-null, the fallback renders instead of the children.
+
+## Dynamic
+
+Renders a component or HTML element dynamically based on a reactive value. Useful for rendering polymorphic components or switching between element types at runtime.
+
+```tsx
+import { Dynamic } from "@pyreon/core"
+import { signal } from "@pyreon/reactivity"
+
+// Dynamic component
+const currentView = signal<"home" | "settings">("home")
+const views = { home: HomePage, settings: SettingsPage }
+
+function App() {
+  return <Dynamic component={views[currentView()]} />
+}
+```
+
+```tsx
+// Dynamic HTML element
+const tag = signal<"h1" | "h2" | "p">("h1")
+
+function Heading(props: { text: string }) {
+  return <Dynamic component={tag()} class="heading">{props.text}</Dynamic>
+}
+```
+
+### DynamicProps
+
+```ts
+interface DynamicProps extends Props {
+  /** Component function or HTML tag name to render */
+  component: ComponentFn | string
+}
+```
+
+All other props are forwarded to the resolved component or element. If `component` is falsy, `Dynamic` returns `null`.
+
+## lazy
+
+Lazily load a component module. Returns a wrapper component that shows `null` while loading and the resolved component once ready. Pairs with `Suspense` to show a fallback during loading.
+
+```tsx
+import { lazy, Suspense } from "@pyreon/core"
+
+const HeavyChart = lazy(() => import("./HeavyChart"))
+
+function Dashboard() {
+  return (
+    <Suspense fallback={<div>Loading chart...</div>}>
+      <HeavyChart data={chartData()} />
+    </Suspense>
+  )
+}
+```
+
+### How lazy Works
+
+1. `lazy()` starts the dynamic `import()` immediately.
+2. While loading, the wrapper component returns `null` and exposes a `__loading()` signal that returns `true`.
+3. `Suspense` detects `__loading()` and renders the fallback instead.
+4. Once the module resolves, the signal flips and `Suspense` renders the actual component.
+5. If the import fails, the error is thrown during rendering and can be caught by `ErrorBoundary`.
+
+```ts
+function lazy<P extends Props>(
+  load: () => Promise<{ default: ComponentFn<P> }>,
+): LazyComponent<P>
+```
 
 ## mapArray
 
@@ -1665,6 +1727,8 @@ Dispatch an error to the nearest active `ErrorBoundary`. Returns `true` if the b
 | `Switch` / `Match` | Multi-branch conditional rendering |
 | `For` | Keyed reactive list rendering |
 | `Portal` | Render into a different DOM target |
+| `Dynamic` | Render a component or element dynamically |
+| `lazy` | Lazily load a component module |
 | `Suspense` | Show fallback while lazy components load |
 | `ErrorBoundary` | Catch and display errors with reset capability |
 | `mapArray` | Keyed reactive list mapping with cache eviction |

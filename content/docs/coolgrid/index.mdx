@@ -13,17 +13,16 @@ description: Responsive 12-column grid system with Container, Row, and Col compo
 
 ## Quick Start
 
-```ts
+```tsx
 import { Container, Row, Col } from '@pyreon/coolgrid'
-import { h } from '@pyreon/core'
 
-h(Container, { maxWidth: 1140, gap: 24, gutter: 16 },
-  h(Row, null,
-    h(Col, { xs: 12, md: 6, lg: 4 }, "Column 1"),
-    h(Col, { xs: 12, md: 6, lg: 4 }, "Column 2"),
-    h(Col, { xs: 12, md: 12, lg: 4 }, "Column 3"),
-  )
-)
+<Container maxWidth={1140} gap={24} gutter={16}>
+  <Row>
+    <Col xs={12} md={6} lg={4}>Column 1</Col>
+    <Col xs={12} md={6} lg={4}>Column 2</Col>
+    <Col xs={12} md={12} lg={4}>Column 3</Col>
+  </Row>
+</Container>
 ```
 
 This creates a three-column layout that stacks to two columns at medium screens and one column on mobile.
@@ -87,16 +86,15 @@ The outermost grid wrapper. Centers content horizontally with auto margins, cons
 
 ### Basic Usage
 
-```ts
+```tsx
 import { Container } from '@pyreon/coolgrid'
-import { h } from '@pyreon/core'
 
-h(Container, {
-  maxWidth: 1140,
-  columns: 12,
-  gap: 24,
-  gutter: 16,
-}, children)
+<Container
+  maxWidth={1140}
+  columns={12}
+  gap={24}
+  gutter={16}
+>{children}</Container>
 ```
 
 ### Props
@@ -128,28 +126,28 @@ padding-right: {gutter}px;  /* only when gutter > 0 */
 
 ### Examples
 
-```ts
+```tsx
 // Fixed-width centered container
-h(Container, { maxWidth: 960 }, children)
+<Container maxWidth={960}>{children}</Container>
 
 // Full-width container with gutters
-h(Container, { maxWidth: '100%', gutter: 16 }, children)
+<Container maxWidth="100%" gutter={16}>{children}</Container>
 
 // Container with custom tag and class
-h(Container, {
-  tag: 'main',
-  maxWidth: 1200,
-  gap: 24,
-  gutter: 24,
-  class: 'page-container',
-}, children)
+<Container
+  tag="main"
+  maxWidth={1200}
+  gap={24}
+  gutter={24}
+  class="page-container"
+>{children}</Container>
 
 // Narrow content container
-h(Container, {
-  maxWidth: 640,
-  gap: 16,
-  style: 'padding-top: 32px; padding-bottom: 32px;',
-}, children)
+<Container
+  maxWidth={640}
+  gap={16}
+  style="padding-top: 32px; padding-bottom: 32px;"
+>{children}</Container>
 ```
 
 ---
@@ -160,19 +158,18 @@ A flex container for columns. Reads the parent Container's config for gap and co
 
 ### Basic Usage
 
-```ts
+```tsx
 import { Row } from '@pyreon/coolgrid'
-import { h } from '@pyreon/core'
 
-h(Row, null,
-  h(Col, { xs: 6 }, "Left"),
-  h(Col, { xs: 6 }, "Right"),
-)
+<Row>
+  <Col xs={6}>Left</Col>
+  <Col xs={6}>Right</Col>
+</Row>
 
 // With alignment
-h(Row, { alignX: 'center', alignY: 'center' },
-  h(Col, { xs: 6 }, "Centered horizontally"),
-)
+<Row alignX="center" alignY="center">
+  <Col xs={6}>Centered horizontally</Col>
+</Row>
 ```
 
 ### Props
@@ -230,61 +227,61 @@ The `flex-wrap: wrap` ensures columns wrap to the next line when the total span 
 
 Row can override the Container's `columns` and `gap` settings. The overridden values cascade to child Cols:
 
-```ts
-h(Container, { columns: 12, gap: 24 },
-  // This row uses the Container's defaults: 12 columns, 24px gap
-  h(Row, null,
-    h(Col, { xs: 6 }, "Half"),
-    h(Col, { xs: 6 }, "Half"),
-  ),
-  // This row overrides to 24 columns and 32px gap
-  h(Row, { columns: 24, gap: 32 },
-    h(Col, { xs: 6 }, "Quarter"),  // 6/24 = 25%
-    h(Col, { xs: 12 }, "Half"),    // 12/24 = 50%
-    h(Col, { xs: 6 }, "Quarter"),  // 6/24 = 25%
-  ),
-)
+```tsx
+<Container columns={12} gap={24}>
+  {/* This row uses the Container's defaults: 12 columns, 24px gap */}
+  <Row>
+    <Col xs={6}>Half</Col>
+    <Col xs={6}>Half</Col>
+  </Row>
+  {/* This row overrides to 24 columns and 32px gap */}
+  <Row columns={24} gap={32}>
+    <Col xs={6}>Quarter</Col>  {/* 6/24 = 25% */}
+    <Col xs={12}>Half</Col>    {/* 12/24 = 50% */}
+    <Col xs={6}>Quarter</Col>  {/* 6/24 = 25% */}
+  </Row>
+</Container>
 ```
 
 ### Alignment Examples
 
-```ts
+```tsx
 // Center a single narrow column
-h(Row, { alignX: 'center' },
-  h(Col, { xs: 6 }, "Centered half-width content"),
-)
+<Row alignX="center">
+  <Col xs={6}>Centered half-width content</Col>
+</Row>
 
 // Right-align columns
-h(Row, { alignX: 'right' },
-  h(Col, { xs: 4 }, "Right-aligned content"),
-)
+<Row alignX="right">
+  <Col xs={4}>Right-aligned content</Col>
+</Row>
 
 // Space columns evenly
-h(Row, { alignX: 'evenly' },
-  h(Col, { xs: 3 }, "A"),
-  h(Col, { xs: 3 }, "B"),
-  h(Col, { xs: 3 }, "C"),
-)
+<Row alignX="evenly">
+  <Col xs={3}>A</Col>
+  <Col xs={3}>B</Col>
+  <Col xs={3}>C</Col>
+</Row>
 
 // Vertically center columns with different heights
-h(Row, { alignY: 'center' },
-  h(Col, { xs: 6 },
-    h('div', { style: 'height: 200px; background: #eee;' }, "Tall"),
-  ),
-  h(Col, { xs: 6 },
-    h('div', { style: 'height: 100px; background: #ddd;' }, "Short"),
-  ),
-)
+<Row alignY="center">
+  <Col xs={6}>
+    <div style="height: 200px; background: #eee;">Tall</div>
+  </Col>
+  <Col xs={6}>
+    <div style="height: 100px; background: #ddd;">Short</div>
+  </Col>
+</Row>
 
 // Stretch columns to equal height
-h(Row, { alignY: 'stretch' },
-  h(Col, { xs: 6 },
-    h('div', { style: 'background: #eee; height: 100%;' }, "Stretches"),
-  ),
-  h(Col, { xs: 6 },
-    h('div', { style: 'background: #ddd; height: 100%;' }, "Also stretches"),
-  ),
-)
+<Row alignY="stretch">
+  <Col xs={6}>
+    <div style="background: #eee; height: 100%;">Stretches</div>
+  </Col>
+  <Col xs={6}>
+    <div style="background: #ddd; height: 100%;">Also stretches</div>
+  </Col>
+</Row>
 ```
 
 ---
@@ -295,18 +292,17 @@ A grid column that calculates its width as a percentage of the total column coun
 
 ### Basic Usage
 
-```ts
+```tsx
 import { Col } from '@pyreon/coolgrid'
-import { h } from '@pyreon/core'
 
 // Full width on mobile, half on medium, third on large
-h(Col, { xs: 12, md: 6, lg: 4 }, "Content")
+<Col xs={12} md={6} lg={4}>Content</Col>
 
 // With offset
-h(Col, { xs: 8, offset: 2 }, "Centered content")
+<Col xs={8} offset={2}>Centered content</Col>
 
 // With order override
-h(Col, { xs: 6, order: 2 }, "Visually second")
+<Col xs={6} order={2}>Visually second</Col>
 ```
 
 ### Props
@@ -362,17 +358,17 @@ order: {order};              /* only when order is set */
 
 The `offset` prop pushes a column to the right by adding `margin-left` as a percentage:
 
-```ts
+```tsx
 // Center an 8-column block in a 12-column grid
 // offset 2 = 2/12 = 16.67% margin-left
-h(Row, null,
-  h(Col, { xs: 8, offset: 2 }, "Centered"),
-)
+<Row>
+  <Col xs={8} offset={2}>Centered</Col>
+</Row>
 
 // Skip the first third
-h(Row, null,
-  h(Col, { xs: 8, offset: 4 }, "After the first third"),
-)
+<Row>
+  <Col xs={8} offset={4}>After the first third</Col>
+</Row>
 ```
 
 Be careful: offset plus span should not exceed the total columns, or the column will wrap to the next line.
@@ -381,31 +377,31 @@ Be careful: offset plus span should not exceed the total columns, or the column 
 
 The `order` prop controls visual ordering without changing the DOM order. This is useful for reordering columns at different breakpoints or for accessibility reasons (keeping DOM order logical while adjusting visual order):
 
-```ts
-h(Row, null,
-  // DOM order: sidebar first, content second
-  // Visual order: content first (order 1), sidebar second (order 2)
-  h(Col, { xs: 12, md: 4, order: 2 }, "Sidebar"),
-  h(Col, { xs: 12, md: 8, order: 1 }, "Main Content"),
-)
+```tsx
+<Row>
+  {/* DOM order: sidebar first, content second */}
+  {/* Visual order: content first (order 1), sidebar second (order 2) */}
+  <Col xs={12} md={4} order={2}>Sidebar</Col>
+  <Col xs={12} md={8} order={1}>Main Content</Col>
+</Row>
 ```
 
 Negative order values are supported:
 
-```ts
-h(Row, null,
-  h(Col, { xs: 6, order: 0 }, "Second"),
-  h(Col, { xs: 6, order: -1 }, "First (negative order)"),
-)
+```tsx
+<Row>
+  <Col xs={6} order={0}>Second</Col>
+  <Col xs={6} order={-1}>First (negative order)</Col>
+</Row>
 ```
 
 ### Standalone Col (Without Row Context)
 
 Col can be used without a Row context. When no context is available, it defaults to 12 columns and 0 gap:
 
-```ts
+```tsx
 // Works fine without Row -- defaults to 12 columns, no gap
-h(Col, { xs: 6 }, "Half width")
+<Col xs={6}>Half width</Col>
 ```
 
 ---
@@ -471,36 +467,36 @@ Each breakpoint has a recommended container max-width:
 
 While 12 columns is the default, you can use any column count. Common alternatives:
 
-```ts
+```tsx
 // 24-column grid for finer control
-h(Container, { columns: 24, gap: 16 },
-  h(Row, null,
-    h(Col, { xs: 16 }, "Two-thirds"),
-    h(Col, { xs: 8 }, "One-third"),
-  )
-)
+<Container columns={24} gap={16}>
+  <Row>
+    <Col xs={16}>Two-thirds</Col>
+    <Col xs={8}>One-third</Col>
+  </Row>
+</Container>
 
 // 6-column grid for simple layouts
-h(Container, { columns: 6, gap: 24 },
-  h(Row, null,
-    h(Col, { xs: 2 }, "One"),
-    h(Col, { xs: 2 }, "Two"),
-    h(Col, { xs: 2 }, "Three"),
-  )
-)
+<Container columns={6} gap={24}>
+  <Row>
+    <Col xs={2}>One</Col>
+    <Col xs={2}>Two</Col>
+    <Col xs={2}>Three</Col>
+  </Row>
+</Container>
 
 // Mixed column counts -- Row overrides Container
-h(Container, { columns: 12, gap: 16 },
-  h(Row, null,
-    h(Col, { xs: 6 }, "Half (12-col)"),
-    h(Col, { xs: 6 }, "Half (12-col)"),
-  ),
-  h(Row, { columns: 24 },
-    h(Col, { xs: 8 }, "Third (24-col)"),
-    h(Col, { xs: 8 }, "Third (24-col)"),
-    h(Col, { xs: 8 }, "Third (24-col)"),
-  ),
-)
+<Container columns={12} gap={16}>
+  <Row>
+    <Col xs={6}>Half (12-col)</Col>
+    <Col xs={6}>Half (12-col)</Col>
+  </Row>
+  <Row columns={24}>
+    <Col xs={8}>Third (24-col)</Col>
+    <Col xs={8}>Third (24-col)</Col>
+    <Col xs={8}>Third (24-col)</Col>
+  </Row>
+</Container>
 ```
 
 ---
@@ -509,149 +505,155 @@ h(Container, { columns: 12, gap: 16 },
 
 ### Basic Two-Column Layout
 
-```ts
-h(Container, { maxWidth: 960, gap: 24 },
-  h(Row, null,
-    h(Col, { xs: 12, md: 8 }, "Main content"),
-    h(Col, { xs: 12, md: 4 }, "Sidebar"),
-  )
-)
+```tsx
+<Container maxWidth={960} gap={24}>
+  <Row>
+    <Col xs={12} md={8}>Main content</Col>
+    <Col xs={12} md={4}>Sidebar</Col>
+  </Row>
+</Container>
 ```
 
 ### Centered Narrow Content
 
-```ts
-h(Container, { maxWidth: 1140 },
-  h(Row, { alignX: 'center' },
-    h(Col, { xs: 12, md: 8, lg: 6 }, "Centered content"),
-  )
-)
+```tsx
+<Container maxWidth={1140}>
+  <Row alignX="center">
+    <Col xs={12} md={8} lg={6}>Centered content</Col>
+  </Row>
+</Container>
 ```
 
 ### Card Grid
 
-```ts
-h(Container, { maxWidth: 1200, gap: 16, gutter: 16 },
-  h(Row, null,
-    items.map(item =>
-      h(Col, { xs: 12, sm: 6, lg: 4, xl: 3 },
-        h('div', { class: 'card' }, item.title)
-      )
-    )
-  )
-)
+```tsx
+<Container maxWidth={1200} gap={16} gutter={16}>
+  <Row>
+    {items.map(item =>
+      <Col xs={12} sm={6} lg={4} xl={3}>
+        <div class="card">{item.title}</div>
+      </Col>
+    )}
+  </Row>
+</Container>
 ```
 
 ### Holy Grail Layout (Header + Sidebar + Content + Footer)
 
-```ts
+```tsx
 function HolyGrailLayout(props: {
   header: VNodeChild
   sidebar: VNodeChild
   content: VNodeChild
   footer: VNodeChild
 }) {
-  return h(Container, { maxWidth: 1200, gap: 24, gutter: 16 },
-    // Header -- full width
-    h(Row, null,
-      h(Col, { xs: 12 },
-        h('header', { class: 'site-header' }, props.header),
-      ),
-    ),
-    // Main area -- sidebar + content
-    h(Row, null,
-      h(Col, { xs: 12, md: 3 },
-        h('aside', { class: 'sidebar' }, props.sidebar),
-      ),
-      h(Col, { xs: 12, md: 9 },
-        h('main', { class: 'main-content' }, props.content),
-      ),
-    ),
-    // Footer -- full width
-    h(Row, null,
-      h(Col, { xs: 12 },
-        h('footer', { class: 'site-footer' }, props.footer),
-      ),
-    ),
+  return (
+    <Container maxWidth={1200} gap={24} gutter={16}>
+      {/* Header -- full width */}
+      <Row>
+        <Col xs={12}>
+          <header class="site-header">{props.header}</header>
+        </Col>
+      </Row>
+      {/* Main area -- sidebar + content */}
+      <Row>
+        <Col xs={12} md={3}>
+          <aside class="sidebar">{props.sidebar}</aside>
+        </Col>
+        <Col xs={12} md={9}>
+          <main class="main-content">{props.content}</main>
+        </Col>
+      </Row>
+      {/* Footer -- full width */}
+      <Row>
+        <Col xs={12}>
+          <footer class="site-footer">{props.footer}</footer>
+        </Col>
+      </Row>
+    </Container>
   )
 }
 ```
 
 ### Dashboard Layout
 
-```ts
+```tsx
 function DashboardLayout(props: {
   stats: { label: string; value: string }[]
   chart: VNodeChild
   recentActivity: VNodeChild
   quickActions: VNodeChild
 }) {
-  return h(Container, { maxWidth: 1400, gap: 24, gutter: 24 },
-    // Stats row -- 4 equal columns
-    h(Row, null,
-      props.stats.map(stat =>
-        h(Col, { xs: 6, lg: 3 },
-          h('div', { class: 'stat-card' },
-            h('div', { class: 'stat-value' }, stat.value),
-            h('div', { class: 'stat-label' }, stat.label),
-          )
-        )
-      )
-    ),
-    // Chart + Activity
-    h(Row, null,
-      h(Col, { xs: 12, lg: 8 },
-        h('div', { class: 'chart-card' }, props.chart),
-      ),
-      h(Col, { xs: 12, lg: 4 },
-        h('div', { class: 'activity-card' }, props.recentActivity),
-      ),
-    ),
-    // Quick actions -- full width
-    h(Row, null,
-      h(Col, { xs: 12 }, props.quickActions),
-    ),
+  return (
+    <Container maxWidth={1400} gap={24} gutter={24}>
+      {/* Stats row -- 4 equal columns */}
+      <Row>
+        {props.stats.map(stat =>
+          <Col xs={6} lg={3}>
+            <div class="stat-card">
+              <div class="stat-value">{stat.value}</div>
+              <div class="stat-label">{stat.label}</div>
+            </div>
+          </Col>
+        )}
+      </Row>
+      {/* Chart + Activity */}
+      <Row>
+        <Col xs={12} lg={8}>
+          <div class="chart-card">{props.chart}</div>
+        </Col>
+        <Col xs={12} lg={4}>
+          <div class="activity-card">{props.recentActivity}</div>
+        </Col>
+      </Row>
+      {/* Quick actions -- full width */}
+      <Row>
+        <Col xs={12}>{props.quickActions}</Col>
+      </Row>
+    </Container>
   )
 }
 ```
 
 ### Blog Post Layout
 
-```ts
+```tsx
 function BlogPostLayout(props: {
   title: string
   meta: VNodeChild
   content: VNodeChild
   relatedPosts: VNodeChild
 }) {
-  return h(Container, { maxWidth: 1200, gap: 32 },
-    // Title -- centered, narrow
-    h(Row, { alignX: 'center' },
-      h(Col, { xs: 12, md: 8 },
-        h('h1', { class: 'post-title' }, props.title),
-        props.meta,
-      ),
-    ),
-    // Content -- centered, narrow
-    h(Row, { alignX: 'center' },
-      h(Col, { xs: 12, md: 8 },
-        h('article', { class: 'post-content' }, props.content),
-      ),
-    ),
-    // Related posts -- full width, 3-column grid
-    h(Row, null,
-      h(Col, { xs: 12 },
-        h('h2', null, "Related Posts"),
-      ),
-    ),
-    h(Row, null, props.relatedPosts),
+  return (
+    <Container maxWidth={1200} gap={32}>
+      {/* Title -- centered, narrow */}
+      <Row alignX="center">
+        <Col xs={12} md={8}>
+          <h1 class="post-title">{props.title}</h1>
+          {props.meta}
+        </Col>
+      </Row>
+      {/* Content -- centered, narrow */}
+      <Row alignX="center">
+        <Col xs={12} md={8}>
+          <article class="post-content">{props.content}</article>
+        </Col>
+      </Row>
+      {/* Related posts -- full width, 3-column grid */}
+      <Row>
+        <Col xs={12}>
+          <h2>Related Posts</h2>
+        </Col>
+      </Row>
+      <Row>{props.relatedPosts}</Row>
+    </Container>
   )
 }
 ```
 
 ### Sidebar with Content
 
-```ts
+```tsx
 function SidebarLayout(props: {
   sidebar: VNodeChild
   content: VNodeChild
@@ -659,23 +661,25 @@ function SidebarLayout(props: {
 }) {
   const isRight = props.sidebarPosition === 'right'
 
-  return h(Container, { maxWidth: 1200, gap: 24, gutter: 16 },
-    h(Row, null,
-      h(Col, {
-        xs: 12,
-        md: 3,
-        order: isRight ? 2 : 1,
-      },
-        h('aside', { class: 'sidebar' }, props.sidebar),
-      ),
-      h(Col, {
-        xs: 12,
-        md: 9,
-        order: isRight ? 1 : 2,
-      },
-        h('main', null, props.content),
-      ),
-    ),
+  return (
+    <Container maxWidth={1200} gap={24} gutter={16}>
+      <Row>
+        <Col
+          xs={12}
+          md={3}
+          order={isRight ? 2 : 1}
+        >
+          <aside class="sidebar">{props.sidebar}</aside>
+        </Col>
+        <Col
+          xs={12}
+          md={9}
+          order={isRight ? 1 : 2}
+        >
+          <main>{props.content}</main>
+        </Col>
+      </Row>
+    </Container>
   )
 }
 ```
@@ -684,37 +688,37 @@ function SidebarLayout(props: {
 
 Grids can be nested. A Col can contain its own Row and Col children:
 
-```ts
-h(Container, { maxWidth: 1200, gap: 24 },
-  h(Row, null,
-    // Main content area
-    h(Col, { xs: 12, md: 8 },
-      h('h1', null, "Product Gallery"),
-      // Nested grid within the main column
-      h(Row, { gap: 16 },
-        h(Col, { xs: 6 },
-          h('img', { src: '/product-1.jpg', style: 'width: 100%;' }),
-        ),
-        h(Col, { xs: 6 },
-          h('img', { src: '/product-2.jpg', style: 'width: 100%;' }),
-        ),
-        h(Col, { xs: 6 },
-          h('img', { src: '/product-3.jpg', style: 'width: 100%;' }),
-        ),
-        h(Col, { xs: 6 },
-          h('img', { src: '/product-4.jpg', style: 'width: 100%;' }),
-        ),
-      ),
-    ),
-    // Sidebar
-    h(Col, { xs: 12, md: 4 },
-      h('div', { class: 'product-details' },
-        h('h2', null, "Product Name"),
-        h('p', null, "Product description..."),
-      ),
-    ),
-  ),
-)
+```tsx
+<Container maxWidth={1200} gap={24}>
+  <Row>
+    {/* Main content area */}
+    <Col xs={12} md={8}>
+      <h1>Product Gallery</h1>
+      {/* Nested grid within the main column */}
+      <Row gap={16}>
+        <Col xs={6}>
+          <img src="/product-1.jpg" style="width: 100%;" />
+        </Col>
+        <Col xs={6}>
+          <img src="/product-2.jpg" style="width: 100%;" />
+        </Col>
+        <Col xs={6}>
+          <img src="/product-3.jpg" style="width: 100%;" />
+        </Col>
+        <Col xs={6}>
+          <img src="/product-4.jpg" style="width: 100%;" />
+        </Col>
+      </Row>
+    </Col>
+    {/* Sidebar */}
+    <Col xs={12} md={4}>
+      <div class="product-details">
+        <h2>Product Name</h2>
+        <p>Product description...</p>
+      </div>
+    </Col>
+  </Row>
+</Container>
 ```
 
 When nesting, the inner Row reads from the nearest Container context. If the inner Row is inside a Col that is inside a Row, it picks up the same Container config. You can override `gap` and `columns` on the inner Row independently.
@@ -723,59 +727,59 @@ When nesting, the inner Row reads from the nearest Container context. If the inn
 
 Use `alignY: 'stretch'` on the Row to make all columns the same height:
 
-```ts
-h(Container, { maxWidth: 1200, gap: 24 },
-  h(Row, { alignY: 'stretch' },
-    h(Col, { xs: 12, md: 4 },
-      h('div', {
-        class: 'card',
-        style: 'height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid #ddd; border-radius: 8px;',
-      },
-        h('h3', null, "Short Title"),
-        h('p', { style: 'flex: 1;' }, "Short content."),
-        h('button', null, "Action"),
-      ),
-    ),
-    h(Col, { xs: 12, md: 4 },
-      h('div', {
-        class: 'card',
-        style: 'height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid #ddd; border-radius: 8px;',
-      },
-        h('h3', null, "Longer Title Here"),
-        h('p', { style: 'flex: 1;' }, "This card has much more content that makes it taller than the others. The other cards will stretch to match."),
-        h('button', null, "Action"),
-      ),
-    ),
-    h(Col, { xs: 12, md: 4 },
-      h('div', {
-        class: 'card',
-        style: 'height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid #ddd; border-radius: 8px;',
-      },
-        h('h3', null, "Medium Title"),
-        h('p', { style: 'flex: 1;' }, "Medium amount of content."),
-        h('button', null, "Action"),
-      ),
-    ),
-  ),
-)
+```tsx
+<Container maxWidth={1200} gap={24}>
+  <Row alignY="stretch">
+    <Col xs={12} md={4}>
+      <div
+        class="card"
+        style="height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid #ddd; border-radius: 8px;"
+      >
+        <h3>Short Title</h3>
+        <p style="flex: 1;">Short content.</p>
+        <button>Action</button>
+      </div>
+    </Col>
+    <Col xs={12} md={4}>
+      <div
+        class="card"
+        style="height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid #ddd; border-radius: 8px;"
+      >
+        <h3>Longer Title Here</h3>
+        <p style="flex: 1;">This card has much more content that makes it taller than the others. The other cards will stretch to match.</p>
+        <button>Action</button>
+      </div>
+    </Col>
+    <Col xs={12} md={4}>
+      <div
+        class="card"
+        style="height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid #ddd; border-radius: 8px;"
+      >
+        <h3>Medium Title</h3>
+        <p style="flex: 1;">Medium amount of content.</p>
+        <button>Action</button>
+      </div>
+    </Col>
+  </Row>
+</Container>
 ```
 
 ### Centered Content with Offset
 
-```ts
+```tsx
 // Method 1: Using Row alignment
-h(Container, { maxWidth: 1200 },
-  h(Row, { alignX: 'center' },
-    h(Col, { xs: 12, md: 6 }, "Centered with alignX"),
-  )
-)
+<Container maxWidth={1200}>
+  <Row alignX="center">
+    <Col xs={12} md={6}>Centered with alignX</Col>
+  </Row>
+</Container>
 
 // Method 2: Using offset
-h(Container, { maxWidth: 1200 },
-  h(Row, null,
-    h(Col, { xs: 8, offset: 2 }, "Centered with offset"),
-  )
-)
+<Container maxWidth={1200}>
+  <Row>
+    <Col xs={8} offset={2}>Centered with offset</Col>
+  </Row>
+</Container>
 ```
 
 ---
@@ -810,13 +814,13 @@ You could achieve the same layouts with raw flexbox styles, but Coolgrid encapsu
 
 You can use Row and Col without a Container. When there is no Container context, Row defaults to 12 columns and 0 gap, or uses the values you pass explicitly:
 
-```ts
+```tsx
 // Standalone Row with explicit config
-h(Row, { columns: 6, gap: 12 },
-  h(Col, { xs: 2 }, "One-third"),
-  h(Col, { xs: 2 }, "One-third"),
-  h(Col, { xs: 2 }, "One-third"),
-)
+<Row columns={6} gap={12}>
+  <Col xs={2}>One-third</Col>
+  <Col xs={2}>One-third</Col>
+  <Col xs={2}>One-third</Col>
+</Row>
 ```
 
 The Col will read the Row's config from context. You lose the centering and gutter behavior of Container, but the column width calculations work the same.

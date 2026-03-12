@@ -19,7 +19,7 @@ For CSR, wrap your application in a `HeadProvider` and use `useHead` in any desc
 
 ```tsx
 import { createHeadContext, HeadProvider, useHead } from "@pyreon/head"
-import { mount, h } from "@pyreon/runtime-dom"
+import { mount } from "@pyreon/runtime-dom"
 
 const headCtx = createHeadContext()
 
@@ -36,7 +36,7 @@ function App() {
 }
 
 mount(
-  h(HeadProvider, { context: headCtx, children: h(App, null) }),
+  <HeadProvider context={headCtx}><App /></HeadProvider>,
   document.getElementById("app")!
 )
 ```
@@ -45,11 +45,10 @@ mount(
 
 For SSR, use `renderWithHead` which automatically creates and injects a head context:
 
-```ts
+```tsx
 import { renderWithHead } from "@pyreon/head"
-import { h } from "@pyreon/core"
 
-const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(h(App, null))
+const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(<App />)
 
 const htmlAttrStr = Object.entries(htmlAttrs)
   .map(([k, v]) => `${k}="${v}"`)
@@ -775,11 +774,10 @@ interface HeadTag {
 
 `renderWithHead` renders a Pyreon app to HTML and extracts all head tags into a serialized string:
 
-```ts
+```tsx
 import { renderWithHead } from "@pyreon/head"
-import { h } from "@pyreon/core"
 
-const result = await renderWithHead(h(App, null))
+const result = await renderWithHead(<App />)
 ```
 
 ### RenderWithHeadResult
@@ -799,9 +797,9 @@ interface RenderWithHeadResult {
 
 ### SSR Template Example
 
-```ts
+```tsx
 async function renderPage(App: ComponentFn): Promise<string> {
-  const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(h(App, null))
+  const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(<App />)
 
   const htmlAttrStr = Object.entries(htmlAttrs)
     .map(([k, v]) => ` ${k}="${escapeAttr(v)}"`)
@@ -963,10 +961,9 @@ const PricingPage = defineComponent(() => {
 const headCtx = createHeadContext()
 
 mount(
-  h(HeadProvider, {
-    context: headCtx,
-    children: h(RootLayout, null, h(PricingPage, null)),
-  }),
+  <HeadProvider context={headCtx}>
+    <RootLayout><PricingPage /></RootLayout>
+  </HeadProvider>,
   document.getElementById("app")!
 )
 ```

@@ -44,13 +44,13 @@ import { Element } from '@pyreon/elements'
 import { h } from '@pyreon/core'
 
 // Simplest usage -- renders a div with inline-flex
-h(Element, null, "Hello world")
+<Element>Hello world</Element>
 
 // With a custom tag
-h(Element, { tag: 'button' }, "Click me")
+<Element tag="button">Click me</Element>
 
 // Block-level element
-h(Element, { block: true }, "Full width")
+<Element block={true}>Full width</Element>
 ```
 
 ### The Three-Slot Layout Model
@@ -59,12 +59,12 @@ Element's defining feature is its three-slot layout. When you provide `beforeCon
 
 ```ts
 // Three-slot layout
-h(Element, {
-  tag: 'button',
-  beforeContent: h('img', { src: '/icon.svg', alt: '' }),
-  afterContent: h('span', { class: 'badge' }, "3"),
-  gap: 8,
-}, "Messages")
+<Element
+  tag="button"
+  beforeContent={<img src="/icon.svg" alt="" />}
+  afterContent={<span class="badge">3</span>}
+  gap={8}
+>Messages</Element>
 ```
 
 This renders the following DOM structure:
@@ -93,7 +93,7 @@ When only `children` is provided (no `beforeContent` or `afterContent`), the wra
 
 ```ts
 // No slots -- renders directly without span wrappers
-h(Element, { tag: 'section', block: true }, "Just content")
+<Element tag="section" block={true}>Just content</Element>
 
 // Renders: <section style="display: flex; ...">Just content</section>
 ```
@@ -145,30 +145,30 @@ Default `alignX` in rows mode is `stretch` (no explicit `alignX` means `align-it
 
 ```ts
 // Icon + label + badge, vertically centered
-h(Element, {
-  tag: 'button',
-  beforeContent: h('img', { src: '/mail.svg', alt: '' }),
-  afterContent: h('span', { class: 'badge' }, "12"),
-  gap: 8,
-  class: 'nav-item',
-}, "Inbox")
+<Element
+  tag="button"
+  beforeContent={<img src="/mail.svg" alt="" />}
+  afterContent={<span class="badge">12</span>}
+  gap={8}
+  class="nav-item"
+>Inbox</Element>
 ```
 
 #### Vertical (Column) Layout
 
 ```ts
 // Stacked card content
-h(Element, {
-  direction: 'rows',
-  alignX: 'center',
-  gap: 16,
-  block: true,
-  class: 'card',
-},
-  h('img', { src: '/photo.jpg', alt: 'Photo' }),
-  h('h3', null, "Card Title"),
-  h('p', null, "Card description text goes here."),
-)
+<Element
+  direction="rows"
+  alignX="center"
+  gap={16}
+  block={true}
+  class="card"
+>
+  <img src="/photo.jpg" alt="Photo" />
+  <h3>Card Title</h3>
+  <p>Card description text goes here.</p>
+</Element>
 ```
 
 #### Equal-Width Columns
@@ -177,14 +177,14 @@ The `equalCols` prop is useful when you want a symmetrical three-part layout, su
 
 ```ts
 // Header with balanced left/center/right
-h(Element, {
-  tag: 'header',
-  beforeContent: h('button', null, "Back"),
-  afterContent: h('button', null, "Save"),
-  equalCols: true,
-  block: true,
-  class: 'app-header',
-}, h('h1', null, "Page Title"))
+<Element
+  tag="header"
+  beforeContent={<button>Back</button>}
+  afterContent={<button>Save</button>}
+  equalCols={true}
+  block={true}
+  class="app-header"
+><h1>Page Title</h1></Element>
 ```
 
 With `equalCols`, each of the three slots gets `flex: 1`, so the title is centered regardless of the width of the side buttons.
@@ -195,16 +195,16 @@ You can pass additional styles as a string or object. They are merged with the c
 
 ```ts
 // String styles are appended
-h(Element, {
-  style: 'color: red; font-weight: bold;',
-  gap: 8,
-}, "Red bold text")
+<Element
+  style="color: red; font-weight: bold;"
+  gap={8}
+>Red bold text</Element>
 
 // Object styles are merged (override computed values if keys conflict)
-h(Element, {
-  style: { color: 'blue', 'font-size': '14px' },
-  block: true,
-}, "Blue text")
+<Element
+  style={{ color: 'blue', 'font-size': '14px' }}
+  block={true}
+>Blue text</Element>
 ```
 
 ### Real-World Patterns
@@ -213,13 +213,15 @@ h(Element, {
 
 ```ts
 function IconButton(props: { icon: string; label: string; onClick: () => void }) {
-  return h(Element, {
-    tag: 'button',
-    beforeContent: h('img', { src: props.icon, alt: '' }),
-    gap: 8,
-    onClick: props.onClick,
-    class: 'icon-btn',
-  }, props.label)
+  return (
+    <Element
+      tag="button"
+      beforeContent={<img src={props.icon} alt="" />}
+      gap={8}
+      onClick={props.onClick}
+      class="icon-btn"
+    >{props.label}</Element>
+  )
 }
 ```
 
@@ -227,15 +229,17 @@ function IconButton(props: { icon: string; label: string; onClick: () => void })
 
 ```ts
 function NavItem(props: { icon: VNodeChild; label: string; badge?: number; active?: boolean }) {
-  return h(Element, {
-    tag: 'a',
-    href: '#',
-    beforeContent: props.icon,
-    afterContent: props.badge ? h('span', { class: 'badge' }, String(props.badge)) : undefined,
-    gap: 12,
-    block: true,
-    class: props.active ? 'nav-item active' : 'nav-item',
-  }, props.label)
+  return (
+    <Element
+      tag="a"
+      href="#"
+      beforeContent={props.icon}
+      afterContent={props.badge ? <span class="badge">{String(props.badge)}</span> : undefined}
+      gap={12}
+      block={true}
+      class={props.active ? 'nav-item active' : 'nav-item'}
+    >{props.label}</Element>
+  )
 }
 ```
 
@@ -243,19 +247,21 @@ function NavItem(props: { icon: VNodeChild; label: string; badge?: number; activ
 
 ```ts
 function Card(props: { title: string; description: string; image?: string; actions?: VNodeChild }) {
-  return h(Element, {
-    direction: 'rows',
-    gap: 16,
-    block: true,
-    class: 'card',
-    style: { padding: '16px', 'border-radius': '8px', border: '1px solid #e0e0e0' },
-  },
-    props.image ? h('img', { src: props.image, style: 'width: 100%; border-radius: 4px;' }) : null,
-    h('h3', { style: 'margin: 0;' }, props.title),
-    h('p', { style: 'margin: 0; color: #666;' }, props.description),
-    props.actions
-      ? h(Element, { alignX: 'right', block: true, gap: 8 }, props.actions)
-      : null,
+  return (
+    <Element
+      direction="rows"
+      gap={16}
+      block={true}
+      class="card"
+      style={{ padding: '16px', 'border-radius': '8px', border: '1px solid #e0e0e0' }}
+    >
+      {props.image ? <img src={props.image} style="width: 100%; border-radius: 4px;" /> : null}
+      <h3 style="margin: 0;">{props.title}</h3>
+      <p style="margin: 0; color: #666;">{props.description}</p>
+      {props.actions
+        ? <Element alignX="right" block={true} gap={8}>{props.actions}</Element>
+        : null}
+    </Element>
   )
 }
 ```
@@ -263,18 +269,18 @@ function Card(props: { title: string; description: string; image?: string; actio
 #### Centered Content Section
 
 ```ts
-h(Element, {
-  direction: 'rows',
-  alignX: 'center',
-  alignY: 'center',
-  block: true,
-  gap: 24,
-  style: { 'min-height': '400px', 'text-align': 'center' },
-},
-  h('h1', null, "Welcome"),
-  h('p', null, "Get started by reading the documentation."),
-  h('button', null, "Get Started"),
-)
+<Element
+  direction="rows"
+  alignX="center"
+  alignY="center"
+  block={true}
+  gap={24}
+  style={{ 'min-height': '400px', 'text-align': 'center' }}
+>
+  <h1>Welcome</h1>
+  <p>Get started by reading the documentation.</p>
+  <button>Get Started</button>
+</Element>
 ```
 
 ### Accessibility Considerations
@@ -283,24 +289,24 @@ Element passes through all `aria-*` attributes, `role`, and `tabindex`, making i
 
 ```ts
 // Accessible button with loading state
-h(Element, {
-  tag: 'button',
-  role: 'button',
-  'aria-busy': isLoading() ? 'true' : 'false',
-  'aria-disabled': isDisabled() ? 'true' : 'false',
-  disabled: isDisabled(),
-  beforeContent: isLoading() ? h('span', { class: 'spinner' }) : null,
-  gap: 8,
-}, isLoading() ? "Loading..." : "Submit")
+<Element
+  tag="button"
+  role="button"
+  aria-busy={isLoading() ? 'true' : 'false'}
+  aria-disabled={isDisabled() ? 'true' : 'false'}
+  disabled={isDisabled()}
+  beforeContent={isLoading() ? <span class="spinner" /> : null}
+  gap={8}
+>{isLoading() ? "Loading..." : "Submit"}</Element>
 
 // Accessible navigation
-h(Element, {
-  tag: 'nav',
-  'aria-label': 'Main navigation',
-  direction: 'rows',
-  gap: 4,
-  block: true,
-}, ...navItems)
+<Element
+  tag="nav"
+  aria-label="Main navigation"
+  direction="rows"
+  gap={4}
+  block={true}
+>{...navItems}</Element>
 ```
 
 ---
@@ -316,19 +322,19 @@ import { Text } from '@pyreon/elements'
 import { h } from '@pyreon/core'
 
 // Inline text (renders <span>)
-h(Text, null, "Hello world")
+<Text>Hello world</Text>
 
 // Paragraph text (renders <p>)
-h(Text, { paragraph: true }, "A paragraph of text.")
+<Text paragraph={true}>A paragraph of text.</Text>
 
 // Custom heading tag
-h(Text, { tag: 'h1', class: 'title' }, "Page Heading")
+<Text tag="h1" class="title">Page Heading</Text>
 
 // Using the label prop
-h(Text, { label: "Fallback text" })
+<Text label="Fallback text" />
 
 // Children take priority over label
-h(Text, { label: "Ignored" }, "This is shown instead")
+<Text label="Ignored">This is shown instead</Text>
 ```
 
 ### Props
@@ -354,13 +360,13 @@ Text resolves its content in this order:
 
 ```ts
 // children wins
-h(Text, { label: "Ignored" }, "Shown")  // renders: "Shown"
+<Text label="Ignored">Shown</Text>  // renders: "Shown"
 
 // label as fallback
-h(Text, { label: "Shown" })  // renders: "Shown"
+<Text label="Shown" />  // renders: "Shown"
 
 // neither -- renders empty
-h(Text, null)  // renders: <span></span>
+<Text />  // renders: <span></span>
 ```
 
 ### Tag Resolution
@@ -372,10 +378,10 @@ The tag is resolved in this order:
 3. Default -- `'span'`
 
 ```ts
-h(Text, { tag: 'h2' }, "Heading")           // <h2>
-h(Text, { tag: 'label', paragraph: true })   // <label> (tag overrides paragraph)
-h(Text, { paragraph: true }, "Paragraph")    // <p>
-h(Text, null, "Inline")                       // <span>
+<Text tag="h2">Heading</Text>           // <h2>
+<Text tag="label" paragraph={true} />   // <label> (tag overrides paragraph)
+<Text paragraph={true}>Paragraph</Text>    // <p>
+<Text>Inline</Text>                       // <span>
 ```
 
 ### Real-World Patterns
@@ -384,27 +390,33 @@ h(Text, null, "Inline")                       // <span>
 
 ```ts
 function Heading(props: { level?: 1 | 2 | 3 | 4 | 5 | 6; children: VNodeChild }) {
-  return h(Text, {
-    tag: `h${props.level ?? 1}`,
-    class: `heading-${props.level ?? 1}`,
-  }, props.children)
+  return (
+    <Text
+      tag={`h${props.level ?? 1}`}
+      class={`heading-${props.level ?? 1}`}
+    >{props.children}</Text>
+  )
 }
 
 function Caption(props: { children: VNodeChild }) {
-  return h(Text, {
-    tag: 'small',
-    class: 'caption',
-    style: 'color: #999; font-size: 12px;',
-  }, props.children)
+  return (
+    <Text
+      tag="small"
+      class="caption"
+      style="color: #999; font-size: 12px;"
+    >{props.children}</Text>
+  )
 }
 
 function Label(props: { for: string; children: VNodeChild }) {
-  return h(Text, {
-    tag: 'label',
-    // passes through arbitrary HTML attributes
-    ...{ for: props.for },
-    class: 'form-label',
-  }, props.children)
+  return (
+    <Text
+      tag="label"
+      // passes through arbitrary HTML attributes
+      {...{ for: props.for }}
+      class="form-label"
+    >{props.children}</Text>
+  )
 }
 ```
 
@@ -414,11 +426,13 @@ The `label` prop is useful when text comes from a data source:
 
 ```ts
 function UserName(props: { user: { displayName: string } }) {
-  return h(Text, {
-    label: props.user.displayName,
-    class: 'username',
-    'data-testid': 'username',
-  })
+  return (
+    <Text
+      label={props.user.displayName}
+      class="username"
+      data-testid="username"
+    />
+  )
 }
 ```
 
@@ -426,18 +440,18 @@ function UserName(props: { user: { displayName: string } }) {
 
 ```ts
 // Screen-reader only text
-h(Text, {
-  class: 'sr-only',
-  style: 'position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0);',
-}, "Skip to main content")
+<Text
+  class="sr-only"
+  style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0);"
+>Skip to main content</Text>
 
 // Text with ARIA role
-h(Text, {
-  tag: 'span',
-  role: 'status',
-  'aria-live': 'polite',
-  class: 'status-text',
-}, () => statusMessage())
+<Text
+  tag="span"
+  role="status"
+  aria-live="polite"
+  class="status-text"
+>{() => statusMessage()}</Text>
 ```
 
 ---
@@ -459,23 +473,23 @@ const items = [
 ]
 
 // With a wrapper element
-h(List, {
-  data: items,
-  tag: 'ul',
-  class: 'user-list',
-}, (item, { index, first, last, odd, even }) =>
-  h('li', {
-    key: item.id,
-    class: even ? 'bg-gray' : '',
-  }, item.name)
-)
+<List
+  data={items}
+  tag="ul"
+  class="user-list"
+>{(item, { index, first, last, odd, even }) =>
+  <li
+    key={item.id}
+    class={even ? 'bg-gray' : ''}
+  >{item.name}</li>
+}</List>
 
 // Without a wrapper (renders as Fragment)
-h(List, {
-  data: items,
-}, (item) =>
-  h('div', { key: item.id, class: 'card' }, item.name)
-)
+<List
+  data={items}
+>{(item) =>
+  <div key={item.id} class="card">{item.name}</div>
+}</List>
 ```
 
 ### Props
@@ -511,14 +525,14 @@ When a `tag` prop is provided, List wraps all rendered items in that element:
 
 ```ts
 // With tag -- renders <ul><li>...</li><li>...</li></ul>
-h(List, { data: items, tag: 'ul' }, (item) =>
-  h('li', null, item.name)
-)
+<List data={items} tag="ul">{(item) =>
+  <li>{item.name}</li>
+}</List>
 
 // Without tag -- renders items as a flat Fragment
-h(List, { data: items }, (item) =>
-  h('div', null, item.name)
-)
+<List data={items}>{(item) =>
+  <div>{item.name}</div>
+}</List>
 ```
 
 The Fragment approach is useful when you want list items to be direct children of an existing container, or when you need to render a flat sequence of elements.
@@ -530,37 +544,37 @@ The Fragment approach is useful when you want list items to be direct children o
 The render function can return `null` to skip items:
 
 ```ts
-h(List, {
-  data: users,
-}, (user) =>
+<List
+  data={users}
+>{(user) =>
   user.active
-    ? h('div', { key: user.id }, user.name)
+    ? <div key={user.id}>{user.name}</div>
     : null
-)
+}</List>
 ```
 
 #### Using Positional Metadata
 
 ```ts
-h(List, {
-  data: items,
-  tag: 'div',
-  class: 'item-list',
-}, (item, { index, first, last, even }) =>
-  h('div', {
-    key: item.id,
-    class: [
+<List
+  data={items}
+  tag="div"
+  class="item-list"
+>{(item, { index, first, last, even }) =>
+  <div
+    key={item.id}
+    class={[
       'item',
       even ? 'item-even' : 'item-odd',
       first ? 'item-first' : '',
       last ? 'item-last' : '',
-    ].filter(Boolean).join(' '),
-    style: !last ? 'border-bottom: 1px solid #eee;' : '',
-  },
-    h('span', { class: 'item-index' }, `${index + 1}.`),
-    h('span', { class: 'item-name' }, item.name),
-  )
-)
+    ].filter(Boolean).join(' ')}
+    style={!last ? 'border-bottom: 1px solid #eee;' : ''}
+  >
+    <span class="item-index">{`${index + 1}.`}</span>
+    <span class="item-name">{item.name}</span>
+  </div>
+}</List>
 ```
 
 #### Nested Lists
@@ -572,21 +586,21 @@ interface Category {
   items: { id: number; name: string }[]
 }
 
-h(List, {
-  data: categories,
-  tag: 'div',
-  class: 'categories',
-}, (category) =>
-  h('div', { key: category.id, class: 'category' },
-    h('h3', null, category.name),
-    h(List, {
-      data: category.items,
-      tag: 'ul',
-    }, (item) =>
-      h('li', { key: item.id }, item.name)
-    )
-  )
-)
+<List
+  data={categories}
+  tag="div"
+  class="categories"
+>{(category) =>
+  <div key={category.id} class="category">
+    <h3>{category.name}</h3>
+    <List
+      data={category.items}
+      tag="ul"
+    >{(item) =>
+      <li key={item.id}>{item.name}</li>
+    }</List>
+  </div>
+}</List>
 ```
 
 ### Real-World Patterns
@@ -603,32 +617,34 @@ interface User {
 }
 
 function UserList(props: { users: User[] }) {
-  return h(List, {
-    data: props.users,
-    tag: 'div',
-    class: 'user-list',
-    role: 'list',
-  }, (user, { last }) =>
-    h(Element, {
-      key: user.id,
-      role: 'listitem',
-      beforeContent: h('img', {
-        src: user.avatar,
-        alt: `${user.name}'s avatar`,
-        style: 'width: 40px; height: 40px; border-radius: 50%;',
-      }),
-      afterContent: h('span', {
-        class: `role-badge role-${user.role}`,
-      }, user.role),
-      gap: 12,
-      block: true,
-      style: !last ? 'border-bottom: 1px solid #eee; padding: 12px 0;' : 'padding: 12px 0;',
-    },
-      h('div', null,
-        h('div', { class: 'user-name' }, user.name),
-        h('div', { class: 'user-email' }, user.email),
-      )
-    )
+  return (
+    <List
+      data={props.users}
+      tag="div"
+      class="user-list"
+      role="list"
+    >{(user, { last }) =>
+      <Element
+        key={user.id}
+        role="listitem"
+        beforeContent={<img
+          src={user.avatar}
+          alt={`${user.name}'s avatar`}
+          style="width: 40px; height: 40px; border-radius: 50%;"
+        />}
+        afterContent={<span
+          class={`role-badge role-${user.role}`}
+        >{user.role}</span>}
+        gap={12}
+        block={true}
+        style={!last ? 'border-bottom: 1px solid #eee; padding: 12px 0;' : 'padding: 12px 0;'}
+      >
+        <div>
+          <div class="user-name">{user.name}</div>
+          <div class="user-email">{user.email}</div>
+        </div>
+      </Element>
+    }</List>
   )
 }
 ```
@@ -645,24 +661,26 @@ interface NavItem {
 }
 
 function NavMenu(props: { items: NavItem[]; activeId: string }) {
-  return h(List, {
-    data: props.items,
-    tag: 'nav',
-    'aria-label': 'Main navigation',
-  }, (item) =>
-    h(Element, {
-      tag: 'a',
-      key: item.id,
-      href: item.href,
-      beforeContent: item.icon ? h('img', { src: item.icon, alt: '' }) : undefined,
-      afterContent: item.badge
-        ? h('span', { class: 'nav-badge' }, String(item.badge))
-        : undefined,
-      gap: 8,
-      block: true,
-      class: item.id === props.activeId ? 'nav-link active' : 'nav-link',
-      'aria-current': item.id === props.activeId ? 'page' : undefined,
-    }, item.label)
+  return (
+    <List
+      data={props.items}
+      tag="nav"
+      aria-label="Main navigation"
+    >{(item) =>
+      <Element
+        tag="a"
+        key={item.id}
+        href={item.href}
+        beforeContent={item.icon ? <img src={item.icon} alt="" /> : undefined}
+        afterContent={item.badge
+          ? <span class="nav-badge">{String(item.badge)}</span>
+          : undefined}
+        gap={8}
+        block={true}
+        class={item.id === props.activeId ? 'nav-link active' : 'nav-link'}
+        aria-current={item.id === props.activeId ? 'page' : undefined}
+      >{item.label}</Element>
+    }</List>
   )
 }
 ```
@@ -678,27 +696,29 @@ interface Product {
 }
 
 function ProductTable(props: { products: Product[] }) {
-  return h('table', { class: 'product-table' },
-    h('thead', null,
-      h('tr', null,
-        h('th', null, "Name"),
-        h('th', null, "Price"),
-        h('th', null, "Stock"),
-      ),
-    ),
-    h(List, {
-      data: props.products,
-      tag: 'tbody',
-    }, (product, { even }) =>
-      h('tr', {
-        key: product.id,
-        class: even ? 'row-even' : 'row-odd',
-      },
-        h('td', null, product.name),
-        h('td', null, `$${product.price.toFixed(2)}`),
-        h('td', null, String(product.stock)),
-      )
-    ),
+  return (
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <List
+        data={props.products}
+        tag="tbody"
+      >{(product, { even }) =>
+        <tr
+          key={product.id}
+          class={even ? 'row-even' : 'row-odd'}
+        >
+          <td>{product.name}</td>
+          <td>{`$${product.price.toFixed(2)}`}</td>
+          <td>{String(product.stock)}</td>
+        </tr>
+      }</List>
+    </table>
   )
 }
 ```
@@ -710,18 +730,22 @@ List renders an empty Fragment (or empty wrapper) when data is an empty array. H
 ```ts
 function ItemList(props: { items: Item[] }) {
   if (props.items.length === 0) {
-    return h('div', { class: 'empty-state' },
-      h('p', null, "No items found."),
-      h('button', null, "Add your first item"),
+    return (
+      <div class="empty-state">
+        <p>No items found.</p>
+        <button>Add your first item</button>
+      </div>
     )
   }
 
-  return h(List, {
-    data: props.items,
-    tag: 'ul',
-    class: 'item-list',
-  }, (item) =>
-    h('li', { key: item.id }, item.name)
+  return (
+    <List
+      data={props.items}
+      tag="ul"
+      class="item-list"
+    >{(item) =>
+      <li key={item.id}>{item.name}</li>
+    }</List>
   )
 }
 ```
@@ -738,17 +762,19 @@ A headless trigger-and-content pattern for building dropdowns, modals, tooltips,
 import { Overlay } from '@pyreon/elements'
 import { h } from '@pyreon/core'
 
-h(Overlay, {
-  trigger: ({ toggle, isOpen }) =>
-    h('button', { onClick: toggle },
-      () => isOpen() ? 'Close' : 'Open'
-    ),
-  content: ({ close }) =>
-    h('div', { class: 'dropdown-menu' },
-      h('button', { onClick: close }, "Option A"),
-      h('button', { onClick: close }, "Option B"),
-    ),
-})
+<Overlay
+  trigger={({ toggle, isOpen }) =>
+    <button onClick={toggle}>
+      {() => isOpen() ? 'Close' : 'Open'}
+    </button>
+  }
+  content={({ close }) =>
+    <div class="dropdown-menu">
+      <button onClick={close}>Option A</button>
+      <button onClick={close}>Option B</button>
+    </div>
+  }
+/>
 ```
 
 ### Props
@@ -786,36 +812,40 @@ Each Overlay instance has its own independent signal, so multiple overlays on th
 
 ```ts
 function DropdownMenu(props: { label: string; items: { id: string; label: string; onClick: () => void }[] }) {
-  return h(Overlay, {
-    trigger: ({ toggle, isOpen }) =>
-      h(Element, {
-        tag: 'button',
-        onClick: toggle,
-        afterContent: h('span', null, () => isOpen() ? '\u25B2' : '\u25BC'),
-        gap: 8,
-        class: 'dropdown-trigger',
-        'aria-expanded': () => String(isOpen()),
-        'aria-haspopup': 'true',
-      }, props.label),
-    content: ({ close }) =>
-      h('div', {
-        class: 'dropdown-panel',
-        style: 'position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 4px 0; min-width: 160px; z-index: 100;',
-        role: 'menu',
-      },
-        h(List, {
-          data: props.items,
-        }, (item) =>
-          h('button', {
-            key: item.id,
-            onClick: () => { item.onClick(); close() },
-            class: 'dropdown-item',
-            style: 'display: block; width: 100%; padding: 8px 16px; border: none; background: none; text-align: left; cursor: pointer;',
-            role: 'menuitem',
-          }, item.label)
-        )
-      ),
-  })
+  return (
+    <Overlay
+      trigger={({ toggle, isOpen }) =>
+        <Element
+          tag="button"
+          onClick={toggle}
+          afterContent={<span>{() => isOpen() ? '\u25B2' : '\u25BC'}</span>}
+          gap={8}
+          class="dropdown-trigger"
+          aria-expanded={() => String(isOpen())}
+          aria-haspopup="true"
+        >{props.label}</Element>
+      }
+      content={({ close }) =>
+        <div
+          class="dropdown-panel"
+          style="position: absolute; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 4px 0; min-width: 160px; z-index: 100;"
+          role="menu"
+        >
+          <List
+            data={props.items}
+          >{(item) =>
+            <button
+              key={item.id}
+              onClick={() => { item.onClick(); close() }}
+              class="dropdown-item"
+              style="display: block; width: 100%; padding: 8px 16px; border: none; background: none; text-align: left; cursor: pointer;"
+              role="menuitem"
+            >{item.label}</button>
+          }</List>
+        </div>
+      }
+    />
+  )
 }
 ```
 
@@ -823,28 +853,32 @@ function DropdownMenu(props: { label: string; items: { id: string; label: string
 
 ```ts
 function Tooltip(props: { text: string; children: VNodeChild }) {
-  return h(Overlay, {
-    trigger: ({ open, close }) =>
-      h('span', {
-        onMouseenter: open,
-        onMouseleave: close,
-        onFocus: open,
-        onBlur: close,
-        tabindex: 0,
-      }, props.children),
-    content: () =>
-      h('div', {
-        class: 'tooltip',
-        style: 'position: absolute; background: #333; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 1000;',
-        role: 'tooltip',
-      }, props.text),
-  })
+  return (
+    <Overlay
+      trigger={({ open, close }) =>
+        <span
+          onMouseenter={open}
+          onMouseleave={close}
+          onFocus={open}
+          onBlur={close}
+          tabindex={0}
+        >{props.children}</span>
+      }
+      content={() =>
+        <div
+          class="tooltip"
+          style="position: absolute; background: #333; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 1000;"
+          role="tooltip"
+        >{props.text}</div>
+      }
+    />
+  )
 }
 
 // Usage
-h(Tooltip, { text: "Click to edit" },
-  h('button', null, "Edit")
-)
+<Tooltip text="Click to edit">
+  <button>Edit</button>
+</Tooltip>
 ```
 
 #### Confirmation Dialog
@@ -855,38 +889,42 @@ function ConfirmDialog(props: {
   message: string
   onConfirm: () => void
 }) {
-  return h(Overlay, {
-    trigger: ({ open }) =>
-      h('button', {
-        onClick: open,
-        class: 'btn-danger',
-      }, props.triggerLabel),
-    content: ({ close }) =>
-      h(Portal, { target: document.body },
-        h('div', {
-          class: 'dialog-backdrop',
-          style: 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;',
-          onClick: close,
-        },
-          h('div', {
-            class: 'dialog-content',
-            style: 'background: white; padding: 24px; border-radius: 8px; max-width: 400px;',
-            onClick: (e: Event) => e.stopPropagation(),
-            role: 'dialog',
-            'aria-modal': 'true',
-          },
-            h('p', null, props.message),
-            h(Element, { gap: 8, alignX: 'right', block: true, style: 'margin-top: 16px;' },
-              h('button', { onClick: close }, "Cancel"),
-              h('button', {
-                onClick: () => { props.onConfirm(); close() },
-                class: 'btn-danger',
-              }, "Confirm"),
-            ),
-          )
-        )
-      ),
-  })
+  return (
+    <Overlay
+      trigger={({ open }) =>
+        <button
+          onClick={open}
+          class="btn-danger"
+        >{props.triggerLabel}</button>
+      }
+      content={({ close }) =>
+        <Portal target={document.body}>
+          <div
+            class="dialog-backdrop"
+            style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;"
+            onClick={close}
+          >
+            <div
+              class="dialog-content"
+              style="background: white; padding: 24px; border-radius: 8px; max-width: 400px;"
+              onClick={(e: Event) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <p>{props.message}</p>
+              <Element gap={8} alignX="right" block={true} style="margin-top: 16px;">
+                <button onClick={close}>Cancel</button>
+                <button
+                  onClick={() => { props.onConfirm(); close() }}
+                  class="btn-danger"
+                >Confirm</button>
+              </Element>
+            </div>
+          </div>
+        </Portal>
+      }
+    />
+  )
 }
 ```
 
@@ -894,39 +932,43 @@ function ConfirmDialog(props: {
 
 ```ts
 function UserPopover(props: { user: { name: string; email: string; avatar: string } }) {
-  return h(Overlay, {
-    trigger: ({ toggle }) =>
-      h('button', {
-        onClick: toggle,
-        class: 'user-avatar-btn',
-      },
-        h('img', { src: props.user.avatar, alt: props.user.name, style: 'width: 32px; height: 32px; border-radius: 50%;' }),
-      ),
-    content: ({ close }) =>
-      h('div', {
-        class: 'user-popover',
-        style: 'position: absolute; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 16px; min-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);',
-      },
-        h(Element, {
-          beforeContent: h('img', {
-            src: props.user.avatar,
-            alt: '',
-            style: 'width: 48px; height: 48px; border-radius: 50%;',
-          }),
-          gap: 12,
-          block: true,
-          style: 'margin-bottom: 12px;',
-        },
-          h('div', null,
-            h(Text, { tag: 'div', class: 'font-bold' }, props.user.name),
-            h(Text, { tag: 'div', class: 'text-gray' }, props.user.email),
-          )
-        ),
-        h('hr', { style: 'margin: 8px 0; border: none; border-top: 1px solid #eee;' }),
-        h('button', { onClick: close, class: 'popover-action' }, "View Profile"),
-        h('button', { onClick: close, class: 'popover-action' }, "Sign Out"),
-      ),
-  })
+  return (
+    <Overlay
+      trigger={({ toggle }) =>
+        <button
+          onClick={toggle}
+          class="user-avatar-btn"
+        >
+          <img src={props.user.avatar} alt={props.user.name} style="width: 32px; height: 32px; border-radius: 50%;" />
+        </button>
+      }
+      content={({ close }) =>
+        <div
+          class="user-popover"
+          style="position: absolute; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 16px; min-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+        >
+          <Element
+            beforeContent={<img
+              src={props.user.avatar}
+              alt=""
+              style="width: 48px; height: 48px; border-radius: 50%;"
+            />}
+            gap={12}
+            block={true}
+            style="margin-bottom: 12px;"
+          >
+            <div>
+              <Text tag="div" class="font-bold">{props.user.name}</Text>
+              <Text tag="div" class="text-gray">{props.user.email}</Text>
+            </div>
+          </Element>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;" />
+          <button onClick={close} class="popover-action">View Profile</button>
+          <button onClick={close} class="popover-action">Sign Out</button>
+        </div>
+      }
+    />
+  )
 }
 ```
 
@@ -936,16 +978,16 @@ Each Overlay instance has its own independent reactive signal. Opening one overl
 
 ```ts
 // These two overlays are completely independent
-h('div', null,
-  h(Overlay, {
-    trigger: ({ toggle }) => h('button', { onClick: toggle }, "Menu 1"),
-    content: () => h('div', null, "Content 1"),
-  }),
-  h(Overlay, {
-    trigger: ({ toggle }) => h('button', { onClick: toggle }, "Menu 2"),
-    content: () => h('div', null, "Content 2"),
-  }),
-)
+<div>
+  <Overlay
+    trigger={({ toggle }) => <button onClick={toggle}>Menu 1</button>}
+    content={() => <div>Content 1</div>}
+  />
+  <Overlay
+    trigger={({ toggle }) => <button onClick={toggle}>Menu 2</button>}
+    content={() => <div>Content 2</div>}
+  />
+</div>
 ```
 
 ### Accessibility Considerations
@@ -973,15 +1015,15 @@ import { Portal } from '@pyreon/elements'
 import { h } from '@pyreon/core'
 
 // Render into document.body (default)
-h(Portal, null,
-  h('div', { class: 'modal' }, "Modal content")
-)
+<Portal>
+  <div class="modal">Modal content</div>
+</Portal>
 
 // Render into a specific container
 const container = document.getElementById('portal-root')!
-h(Portal, { target: container },
-  h('div', { class: 'toast' }, "Notification")
-)
+<Portal target={container}>
+  <div class="toast">Notification</div>
+</Portal>
 ```
 
 ### Props
@@ -1010,34 +1052,34 @@ This is useful because the portal content is rendered outside the component's no
 ```ts
 function Modal(props: { isOpen: () => boolean; onClose: () => void; title: string; children: VNodeChild }) {
   return () => props.isOpen()
-    ? h(Portal, { target: document.body },
-        h('div', {
-          class: 'modal-backdrop',
-          style: 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;',
-          onClick: props.onClose,
-        },
-          h('div', {
-            class: 'modal-content',
-            style: 'background: white; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;',
-            onClick: (e: Event) => e.stopPropagation(),
-            role: 'dialog',
-            'aria-modal': 'true',
-            'aria-label': props.title,
-          },
-            h(Element, {
-              block: true,
-              beforeContent: h('h2', { style: 'margin: 0;' }, props.title),
-              afterContent: h('button', {
-                onClick: props.onClose,
-                'aria-label': 'Close dialog',
-                style: 'background: none; border: none; font-size: 24px; cursor: pointer;',
-              }, '\u00D7'),
-              style: 'margin-bottom: 16px;',
-            }),
-            props.children,
-          )
-        )
-      )
+    ? <Portal target={document.body}>
+        <div
+          class="modal-backdrop"
+          style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;"
+          onClick={props.onClose}
+        >
+          <div
+            class="modal-content"
+            style="background: white; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;"
+            onClick={(e: Event) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={props.title}
+          >
+            <Element
+              block={true}
+              beforeContent={<h2 style="margin: 0;">{props.title}</h2>}
+              afterContent={<button
+                onClick={props.onClose}
+                aria-label="Close dialog"
+                style="background: none; border: none; font-size: 24px; cursor: pointer;"
+              >{'\u00D7'}</button>}
+              style="margin-bottom: 16px;"
+            />
+            {props.children}
+          </div>
+        </div>
+      </Portal>
     : null
 }
 ```
@@ -1052,30 +1094,32 @@ interface Toast {
 }
 
 function ToastContainer(props: { toasts: Toast[]; onDismiss: (id: string) => void }) {
-  return h(Portal, { target: document.body },
-    h('div', {
-      class: 'toast-container',
-      style: 'position: fixed; top: 16px; right: 16px; z-index: 2000; display: flex; flex-direction: column; gap: 8px;',
-      'aria-live': 'polite',
-    },
-      h(List, {
-        data: props.toasts,
-      }, (toast) =>
-        h(Element, {
-          key: toast.id,
-          afterContent: h('button', {
-            onClick: () => props.onDismiss(toast.id),
-            style: 'background: none; border: none; cursor: pointer; font-size: 16px;',
-            'aria-label': 'Dismiss notification',
-          }, '\u00D7'),
-          gap: 12,
-          block: true,
-          class: `toast toast-${toast.type}`,
-          style: 'padding: 12px 16px; border-radius: 8px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); min-width: 300px;',
-          role: 'alert',
-        }, toast.message)
-      )
-    )
+  return (
+    <Portal target={document.body}>
+      <div
+        class="toast-container"
+        style="position: fixed; top: 16px; right: 16px; z-index: 2000; display: flex; flex-direction: column; gap: 8px;"
+        aria-live="polite"
+      >
+        <List
+          data={props.toasts}
+        >{(toast) =>
+          <Element
+            key={toast.id}
+            afterContent={<button
+              onClick={() => props.onDismiss(toast.id)}
+              style="background: none; border: none; cursor: pointer; font-size: 16px;"
+              aria-label="Dismiss notification"
+            >{'\u00D7'}</button>}
+            gap={12}
+            block={true}
+            class={`toast toast-${toast.type}`}
+            style="padding: 12px 16px; border-radius: 8px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); min-width: 300px;"
+            role="alert"
+          >{toast.message}</Element>
+        }</List>
+      </div>
+    </Portal>
   )
 }
 ```
@@ -1089,28 +1133,30 @@ function ContextMenu(props: {
   items: { label: string; onClick: () => void }[]
   onClose: () => void
 }) {
-  return h(Portal, { target: document.body },
-    h('div', {
-      class: 'context-backdrop',
-      style: 'position: fixed; inset: 0; z-index: 999;',
-      onClick: props.onClose,
-    }),
-    h('div', {
-      class: 'context-menu',
-      style: `position: fixed; left: ${props.x}px; top: ${props.y}px; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px 0; min-width: 160px;`,
-      role: 'menu',
-    },
-      h(List, {
-        data: props.items,
-      }, (item) =>
-        h('button', {
-          onClick: () => { item.onClick(); props.onClose() },
-          class: 'context-menu-item',
-          style: 'display: block; width: 100%; padding: 8px 16px; border: none; background: none; text-align: left; cursor: pointer;',
-          role: 'menuitem',
-        }, item.label)
-      )
-    ),
+  return (
+    <Portal target={document.body}>
+      <div
+        class="context-backdrop"
+        style="position: fixed; inset: 0; z-index: 999;"
+        onClick={props.onClose}
+      />
+      <div
+        class="context-menu"
+        style={`position: fixed; left: ${props.x}px; top: ${props.y}px; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px 0; min-width: 160px;`}
+        role="menu"
+      >
+        <List
+          data={props.items}
+        >{(item) =>
+          <button
+            onClick={() => { item.onClick(); props.onClose() }}
+            class="context-menu-item"
+            style="display: block; width: 100%; padding: 8px 16px; border: none; background: none; text-align: left; cursor: pointer;"
+            role="menuitem"
+          >{item.label}</button>
+        }</List>
+      </div>
+    </Portal>
   )
 }
 ```
@@ -1128,36 +1174,40 @@ function DropdownNav(props: {
   title: string
   links: { href: string; label: string; icon?: string }[]
 }) {
-  return h(Overlay, {
-    trigger: ({ toggle, isOpen }) =>
-      h(Element, {
-        tag: 'button',
-        onClick: toggle,
-        afterContent: h('span', {
-          style: () => `transform: rotate(${isOpen() ? '180deg' : '0deg'}); transition: transform 0.2s;`,
-        }, '\u25BC'),
-        gap: 8,
-        'aria-expanded': () => String(isOpen()),
-      }, props.title),
-    content: ({ close }) =>
-      h('div', { class: 'dropdown-panel', role: 'menu' },
-        h(List, {
-          data: props.links,
-        }, (link) =>
-          h(Element, {
-            tag: 'a',
-            key: link.href,
-            href: link.href,
-            beforeContent: link.icon ? h('img', { src: link.icon, alt: '' }) : undefined,
-            gap: 8,
-            block: true,
-            onClick: close,
-            class: 'dropdown-link',
-            role: 'menuitem',
-          }, link.label)
-        )
-      ),
-  })
+  return (
+    <Overlay
+      trigger={({ toggle, isOpen }) =>
+        <Element
+          tag="button"
+          onClick={toggle}
+          afterContent={<span
+            style={() => `transform: rotate(${isOpen() ? '180deg' : '0deg'}); transition: transform 0.2s;`}
+          >{'\u25BC'}</span>}
+          gap={8}
+          aria-expanded={() => String(isOpen())}
+        >{props.title}</Element>
+      }
+      content={({ close }) =>
+        <div class="dropdown-panel" role="menu">
+          <List
+            data={props.links}
+          >{(link) =>
+            <Element
+              tag="a"
+              key={link.href}
+              href={link.href}
+              beforeContent={link.icon ? <img src={link.icon} alt="" /> : undefined}
+              gap={8}
+              block={true}
+              onClick={close}
+              class="dropdown-link"
+              role="menuitem"
+            >{link.label}</Element>
+          }</List>
+        </div>
+      }
+    />
+  )
 }
 ```
 
@@ -1170,34 +1220,36 @@ interface SettingGroup {
 }
 
 function SettingsPanel(props: { groups: SettingGroup[] }) {
-  return h(Element, {
-    direction: 'rows',
-    gap: 32,
-    block: true,
-    class: 'settings-panel',
-  },
-    h(List, { data: props.groups }, (group) =>
-      h('section', { key: group.title },
-        h(Text, { tag: 'h2', class: 'settings-section-title' }, group.title),
-        h(List, {
-          data: group.settings,
-          tag: 'div',
-          class: 'settings-list',
-        }, (setting, { last }) =>
-          h(Element, {
-            key: setting.id,
-            afterContent: setting.control,
-            block: true,
-            style: !last ? 'padding: 16px 0; border-bottom: 1px solid #eee;' : 'padding: 16px 0;',
-          },
-            h('div', null,
-              h(Text, { tag: 'div', class: 'setting-label' }, setting.label),
-              h(Text, { tag: 'div', class: 'setting-desc' }, setting.description),
-            )
-          )
-        )
-      )
-    )
+  return (
+    <Element
+      direction="rows"
+      gap={32}
+      block={true}
+      class="settings-panel"
+    >
+      <List data={props.groups}>{(group) =>
+        <section key={group.title}>
+          <Text tag="h2" class="settings-section-title">{group.title}</Text>
+          <List
+            data={group.settings}
+            tag="div"
+            class="settings-list"
+          >{(setting, { last }) =>
+            <Element
+              key={setting.id}
+              afterContent={setting.control}
+              block={true}
+              style={!last ? 'padding: 16px 0; border-bottom: 1px solid #eee;' : 'padding: 16px 0;'}
+            >
+              <div>
+                <Text tag="div" class="setting-label">{setting.label}</Text>
+                <Text tag="div" class="setting-desc">{setting.description}</Text>
+              </div>
+            </Element>
+          }</List>
+        </section>
+      }</List>
+    </Element>
   )
 }
 ```

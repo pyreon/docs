@@ -25,12 +25,11 @@ Pyreon's runtime-dom takes a fundamentally different approach from virtual-DOM f
 
 Mount a VNode tree into a container element. Clears the container first, then mounts the given child. Returns an `unmount` function that removes everything and disposes all effects.
 
-```ts
+```tsx
 import { mount } from "@pyreon/runtime-dom"
-import { h } from "@pyreon/core"
 
 const unmount = mount(
-  h(App, null),
+  <App />,
   document.getElementById("app")!
 )
 
@@ -50,10 +49,10 @@ The returned `unmount` function is safe to call multiple times -- subsequent cal
 
 An alias for `mount`. Use whichever name you prefer:
 
-```ts
+```tsx
 import { render } from "@pyreon/runtime-dom"
 
-const unmount = render(h(App, null), document.getElementById("app")!)
+const unmount = render(<App />, document.getElementById("app")!)
 ```
 
 ### mount with JSX
@@ -165,12 +164,12 @@ unmount()
 
 Hydrate a server-rendered container with a Pyreon VNode tree. Reuses existing DOM elements for static structure, attaches event listeners and reactive effects without re-rendering. Falls back to fresh mount for dynamic content.
 
-```ts
+```tsx
 import { hydrateRoot } from "@pyreon/runtime-dom"
 
 const unmount = hydrateRoot(
   document.getElementById("app")!,
-  h(App, null)
+  <App />
 )
 ```
 
@@ -420,10 +419,8 @@ When the Pyreon compiler detects a static JSX element tree, it emits `_tpl(html,
 - Static attributes are baked into the HTML string (no runtime prop application).
 
 **Before optimization (h calls):**
-```ts
-h("div", { class: "box" },
-  h("span", null, text())
-)
+```tsx
+<div class="box"><span>{text()}</span></div>
 ```
 
 **After optimization (_tpl):**

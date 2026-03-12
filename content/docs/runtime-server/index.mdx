@@ -32,22 +32,22 @@ Render a VNode tree to a complete HTML string. Returns a `Promise<string>` becau
 
 ### Basic Usage
 
-```ts
+```tsx
 import { renderToString } from "@pyreon/runtime-server"
 import { h } from "@pyreon/core"
 
-const html = await renderToString(h("div", { class: "greeting" }, "Hello, world!"))
+const html = await renderToString(<div class="greeting">Hello, world!</div>)
 // => '<div class="greeting">Hello, world!</div>'
 ```
 
 ### Rendering a Component Tree
 
-```ts
+```tsx
 import { renderToString } from "@pyreon/runtime-server"
 import { h } from "@pyreon/core"
 import { App } from "./App"
 
-const html = await renderToString(h(App, null))
+const html = await renderToString(<App />)
 
 res.setHeader("Content-Type", "text/html")
 res.end(`
@@ -89,22 +89,22 @@ The renderer walks the VNode tree recursively and handles each node type:
 
 Each `renderToString` call runs in its own `AsyncLocalStorage` store with a fresh context stack. Concurrent requests never share context frames, making it safe for multi-request server environments.
 
-```ts
+```tsx
 // These two renders run concurrently -- their contexts are completely isolated
 app.get("/page-a", async (req, res) => {
-  const html = await renderToString(h(PageA, null))
+  const html = await renderToString(<PageA />)
   res.end(html)
 })
 
 app.get("/page-b", async (req, res) => {
-  const html = await renderToString(h(PageB, null))
+  const html = await renderToString(<PageB />)
   res.end(html)
 })
 ```
 
 Even with 50+ concurrent requests and async components that resolve in unpredictable order, each render sees only its own context values:
 
-```ts
+```tsx
 import { createContext, pushContext, useContext } from "@pyreon/core"
 
 const RequestIdCtx = createContext("none")
@@ -112,19 +112,19 @@ const RequestIdCtx = createContext("none")
 async function AsyncReader(props: { delay: number }) {
   await new Promise((r) => setTimeout(r, props.delay))
   const id = useContext(RequestIdCtx)
-  return h("span", null, id)
+  return <span>{id}</span>
 }
 
 function RequestWrapper(props: { reqId: string; delay: number }) {
   pushContext(new Map([[RequestIdCtx.id, props.reqId]]))
-  return h(AsyncReader, { delay: props.delay })
+  return <AsyncReader delay={props.delay} />
 }
 
 // All 50 renders see their own reqId, even with random delays
 const results = await Promise.all(
   Array.from({ length: 50 }, (_, i) =>
     renderToString(
-      h(RequestWrapper, { reqId: `req-${i}`, delay: Math.random() * 20 })
+      <RequestWrapper reqId={`req-${i}`} delay={Math.random() * 20} />
     )
   )
 )
@@ -135,23 +135,25 @@ const results = await Promise.all(
 
 Async components (components that return a `Promise<VNode>`) are fully supported. The renderer awaits each async component before continuing:
 
-```ts
+```tsx
 async function UserProfile(props: { userId: string }) {
   const user = await fetchUser(props.userId)
-  return h("div", { class: "profile" },
-    h("h1", null, user.name),
-    h("p", null, user.bio)
+  return (
+    <div class="profile">
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
+    </div>
   )
 }
 
-const html = await renderToString(h(UserProfile, { userId: "123" }))
+const html = await renderToString(<UserProfile userId="123" />)
 ```
 
 ### For List Rendering
 
 The `For` component renders list items with hydration markers so the client can claim existing DOM nodes during hydration:
 
-```ts
+```tsx
 import { For, h } from "@pyreon/core"
 import { signal } from "@pyreon/reactivity"
 
@@ -160,7 +162,7 @@ const items = signal(["apple", "banana", "cherry"])
 const vnode = For({
   each: () => items(),
   by: (item) => item,
-  children: (item) => h("li", null, item),
+  children: (item) => <li>{item}</li>,
 })
 
 const html = await renderToString(vnode)
@@ -173,11 +175,11 @@ The `<!--pyreon-for-->` and `<!--/pyreon-for-->` markers are used by the client-
 
 Fragments render their children without any wrapper element:
 
-```ts
+```tsx
 import { Fragment, h } from "@pyreon/core"
 
 const html = await renderToString(
-  h(Fragment, null, h("span", null, "a"), h("span", null, "b"))
+  <><span>a</span><span>b</span></>
 )
 // => '<span>a</span><span>b</span>'
 ```
@@ -186,26 +188,26 @@ const html = await renderToString(
 
 When children are passed via `h(Component, props, child1, child2)`, they are merged into `props.children` automatically, matching the behavior of the client-side mount and hydrate functions:
 
-```ts
+```tsx
 function Wrapper(props: { children: VNode }) {
-  return h("div", { class: "wrapper" }, props.children)
+  return <div class="wrapper">{props.children}</div>
 }
 
 const html = await renderToString(
-  h(Wrapper, null, h("span", null, "child content"))
+  <Wrapper><span>child content</span></Wrapper>
 )
 // => '<div class="wrapper"><span>child content</span></div>'
 ```
 
 Multiple children are passed as an array:
 
-```ts
+```tsx
 function Layout(props: { children: VNode[] }) {
-  return h("div", null, ...props.children)
+  return <div>{...props.children}</div>
 }
 
 const html = await renderToString(
-  h(Layout, null, h("header", null, "Header"), h("main", null, "Content"))
+  <Layout><header>Header</header><main>Content</main></Layout>
 )
 ```
 
@@ -219,12 +221,12 @@ Render a VNode tree to a Web-standard `ReadableStream<string>` for progressive s
 
 ### Basic Usage
 
-```ts
+```tsx
 import { renderToStream } from "@pyreon/runtime-server"
 import { h } from "@pyreon/core"
 import { App } from "./App"
 
-const stream = renderToStream(h(App, null))
+const stream = renderToStream(<App />)
 
 return new Response(stream, {
   headers: { "Content-Type": "text/html" },
@@ -241,14 +243,14 @@ The streaming renderer has three distinct behaviors depending on the node type:
 
 The key advantage of streaming is that the browser can start parsing and rendering HTML before the entire page is ready. Opening tags are flushed before their children resolve:
 
-```ts
+```tsx
 async function SlowChild() {
   await new Promise((r) => setTimeout(r, 1000))
-  return h("span", null, "loaded")
+  return <span>loaded</span>
 }
 
 const stream = renderToStream(
-  h("div", null, h(SlowChild, null))
+  <div><SlowChild /></div>
 )
 
 // Stream chunks arrive as:
@@ -325,24 +327,23 @@ The browser executes the swap script immediately, replacing the fallback placeho
 
 ### Suspense Streaming Example
 
-```ts
+```tsx
 import { renderToStream } from "@pyreon/runtime-server"
 import { h, Suspense } from "@pyreon/core"
 
 async function UserData() {
   const user = await fetchUser() // takes 500ms
-  return h("div", { class: "user" }, user.name)
+  return <div class="user">{user.name}</div>
 }
 
 const stream = renderToStream(
-  h("div", null,
-    h("h1", null, "Dashboard"),
-    h(Suspense, {
-      fallback: h("p", null, "Loading user..."),
-      children: h(UserData, null),
-    }),
-    h("p", null, "Footer content"),
-  )
+  <div>
+    <h1>Dashboard</h1>
+    <Suspense fallback={<p>Loading user...</p>}>
+      <UserData />
+    </Suspense>
+    <p>Footer content</p>
+  </div>
 )
 ```
 
@@ -361,18 +362,16 @@ The user sees "Dashboard", "Loading user...", and "Footer content" immediately. 
 
 Each Suspense boundary gets an incrementing ID. They resolve independently and in any order:
 
-```ts
+```tsx
 const stream = renderToStream(
-  h("div", null,
-    h(Suspense, {
-      fallback: h("p", null, "Loading A..."),
-      children: h(SlowComponentA, null), // resolves in 200ms
-    }),
-    h(Suspense, {
-      fallback: h("p", null, "Loading B..."),
-      children: h(SlowComponentB, null), // resolves in 100ms
-    }),
-  )
+  <div>
+    <Suspense fallback={<p>Loading A...</p>}>
+      <SlowComponentA />{/* resolves in 200ms */}
+    </Suspense>
+    <Suspense fallback={<p>Loading B...</p>}>
+      <SlowComponentB />{/* resolves in 100ms */}
+    </Suspense>
+  </div>
 )
 ```
 
@@ -389,15 +388,16 @@ When `Suspense` boundaries are encountered in `renderToString` (non-streaming), 
 
 Suspense boundary resolutions inherit the context stack from their parent scope. This means `useContext` calls inside async Suspense children see the correct per-request context values:
 
-```ts
+```tsx
 const ThemeCtx = createContext("light")
 
 function App() {
   pushContext(new Map([[ThemeCtx.id, "dark"]]))
-  return h(Suspense, {
-    fallback: h("p", null, "Loading..."),
-    children: h(AsyncContent, null), // useContext(ThemeCtx) returns "dark"
-  })
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      <AsyncContent />{/* useContext(ThemeCtx) returns "dark" */}
+    </Suspense>
+  )
 }
 ```
 
@@ -409,14 +409,14 @@ Run an async function with a fresh, isolated context stack and store registry. T
 
 ### Basic Usage
 
-```ts
+```tsx
 import { runWithRequestContext } from "@pyreon/runtime-server"
 
 app.get("/page", async (req, res) => {
   const html = await runWithRequestContext(async () => {
     // Set up context, prefetch data, etc.
     await prefetchLoaderData(router, req.url)
-    return renderToString(h(App, null))
+    return renderToString(<App />)
   })
   res.end(html)
 })
@@ -430,7 +430,7 @@ app.get("/page", async (req, res) => {
 2. **Setting up context providers** -- pushing context values before render
 3. **Head management** -- collecting `<head>` tags across the render lifecycle
 
-```ts
+```tsx
 import { runWithRequestContext, renderToString } from "@pyreon/runtime-server"
 import { createRouter, prefetchLoaderData } from "@pyreon/router"
 import { h } from "@pyreon/core"
@@ -443,7 +443,7 @@ app.get("*", async (req, res) => {
     await prefetchLoaderData(router, req.url)
 
     // Render in the same context scope
-    const html = await renderToString(h(App, { router }))
+    const html = await renderToString(<App router={router} />)
 
     return { html, router }
   })
@@ -476,13 +476,13 @@ const [r1, r2] = await Promise.all([
 
 You can nest `renderToString` inside `runWithRequestContext`. The render will use the outer context scope rather than creating a new one, since it is already running inside an `AsyncLocalStorage` context:
 
-```ts
+```tsx
 const html = await runWithRequestContext(async () => {
   // Push context before render
   pushContext(new Map([[ThemeCtx.id, "dark"]]))
 
   // renderToString runs inside the existing context
-  return renderToString(h(App, null))
+  return renderToString(<App />)
 })
 ```
 
@@ -516,7 +516,7 @@ When `configureStoreIsolation` is called, it sets up a second `AsyncLocalStorage
 
 ### Full Server Setup with Store Isolation
 
-```ts
+```tsx
 import express from "express"
 import { renderToString, configureStoreIsolation, runWithRequestContext } from "@pyreon/runtime-server"
 import { setStoreRegistryProvider } from "@pyreon/store"
@@ -530,7 +530,7 @@ configureStoreIsolation(setStoreRegistryProvider)
 
 app.get("*", async (req, res) => {
   const html = await runWithRequestContext(async () => {
-    return renderToString(h(App, null))
+    return renderToString(<App />)
   })
 
   res.setHeader("Content-Type", "text/html")
@@ -570,22 +570,22 @@ These attributes are never emitted in server-rendered HTML:
 
 When a prop value is a function (a reactive getter), it is called synchronously to snapshot the current value:
 
-```ts
+```tsx
 import { signal } from "@pyreon/reactivity"
 
 const count = signal(42)
 
 const html = await renderToString(
-  h("span", { "data-count": () => count() })
+  <span data-count={() => count()} />
 )
 // => '<span data-count="42"></span>'
 ```
 
 The same applies to reactive children:
 
-```ts
+```tsx
 const name = signal("world")
-const html = await renderToString(h("p", null, () => name()))
+const html = await renderToString(<p>{() => name()}</p>)
 // => '<p>world</p>'
 ```
 
@@ -594,27 +594,27 @@ const html = await renderToString(h("p", null, () => name()))
 The `class` attribute accepts three formats:
 
 **String:**
-```ts
-h("div", { class: "foo bar" })
+```tsx
+<div class="foo bar" />
 // => '<div class="foo bar"></div>'
 ```
 
 **Array (falsy values filtered):**
-```ts
-h("div", { class: ["foo", null, "bar", false, "baz"] })
+```tsx
+<div class={["foo", null, "bar", false, "baz"]} />
 // => '<div class="foo bar baz"></div>'
 ```
 
 **Object (truthy keys included):**
-```ts
-h("div", { class: { active: true, hidden: false, bold: 1 } })
+```tsx
+<div class={{ active: true, hidden: false, bold: 1 }} />
 // => '<div class="active bold"></div>'
 ```
 
 An empty or non-matching class value results in no `class` attribute:
 
-```ts
-h("div", { class: "" })
+```tsx
+<div class="" />
 // => '<div></div>'
 ```
 
@@ -623,14 +623,14 @@ h("div", { class: "" })
 The `style` attribute accepts two formats:
 
 **String:**
-```ts
-h("div", { style: "color: red; font-size: 16px" })
+```tsx
+<div style="color: red; font-size: 16px" />
 // => '<div style="color: red; font-size: 16px"></div>'
 ```
 
 **Object (camelCase keys converted to kebab-case):**
-```ts
-h("div", { style: { color: "red", fontSize: "16px" } })
+```tsx
+<div style={{ color: "red", fontSize: "16px" }} />
 // => '<div style="color: red; font-size: 16px"></div>'
 ```
 
@@ -638,11 +638,11 @@ h("div", { style: { color: "red", fontSize: "16px" } })
 
 CamelCase prop names are converted to kebab-case HTML attributes. Two special cases are handled:
 
-```ts
-h("label", { className: "lbl", htmlFor: "inp" })
+```tsx
+<label className="lbl" htmlFor="inp" />
 // => '<label class="lbl" for="inp"></label>'
 
-h("div", { dataTestId: "val" })
+<div dataTestId="val" />
 // => '<div data-test-id="val"></div>'
 ```
 
@@ -659,11 +659,11 @@ h("div", { dataTestId: "val" })
 
 URL-bearing attributes (`href`, `src`, `action`, `formaction`, `poster`, `cite`, `data`) are checked for `javascript:` and `data:` URI schemes. If detected, the attribute is silently omitted to prevent XSS:
 
-```ts
-h("a", { href: "javascript:alert(1)" })
+```tsx
+<a href="javascript:alert(1)" />
 // => '<a></a>'  (href omitted)
 
-h("img", { src: "data:text/html,<h1>hi</h1>" })
+<img src="data:text/html,<h1>hi</h1>" />
 // => '<img />'  (src omitted)
 ```
 
@@ -671,10 +671,10 @@ h("img", { src: "data:text/html,<h1>hi</h1>" })
 
 HTML void elements are rendered as self-closing tags:
 
-```ts
-h("br", null)     // => '<br />'
-h("img", { src: "/pic.png" })  // => '<img src="/pic.png" />'
-h("input", { type: "text" })   // => '<input type="text" />'
+```tsx
+<br />             // => '<br />'
+<img src="/pic.png" />  // => '<img src="/pic.png" />'
+<input type="text" />   // => '<input type="text" />'
 ```
 
 The complete list of recognized void elements: `area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `param`, `source`, `track`, `wbr`.
@@ -691,8 +691,8 @@ All text content and attribute values are HTML-escaped. The following characters
 | `"` | `&quot;` |
 | `'` | `&#39;` |
 
-```ts
-h("p", null, '<script>alert("xss")</script>')
+```tsx
+<p>{'<script>alert("xss")</script>'}</p>
 // => '<p>&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;</p>'
 ```
 
@@ -702,13 +702,13 @@ h("p", null, '<script>alert("xss")</script>')
 
 ### Basic SSR with Web Standard Request/Response
 
-```ts
+```tsx
 import { renderToString } from "@pyreon/runtime-server"
 import { h } from "@pyreon/core"
 import { App } from "./App"
 
 export async function handler(req: Request): Promise<Response> {
-  const html = await renderToString(h(App, null))
+  const html = await renderToString(<App />)
 
   return new Response(
     `<!DOCTYPE html>
@@ -723,7 +723,7 @@ export async function handler(req: Request): Promise<Response> {
 
 ### SSR with Express
 
-```ts
+```tsx
 import express from "express"
 import { renderToString, runWithRequestContext, configureStoreIsolation } from "@pyreon/runtime-server"
 import { setStoreRegistryProvider } from "@pyreon/store"
@@ -739,7 +739,7 @@ app.use(express.static("public"))
 app.get("*", async (req, res) => {
   try {
     const html = await runWithRequestContext(async () => {
-      return renderToString(h(App, null))
+      return renderToString(<App />)
     })
 
     res.setHeader("Content-Type", "text/html")
@@ -767,7 +767,7 @@ app.listen(3000, () => console.log("Server running on port 3000"))
 
 ### SSR with Hono
 
-```ts
+```tsx
 import { Hono } from "hono"
 import { renderToString, runWithRequestContext, configureStoreIsolation } from "@pyreon/runtime-server"
 import { setStoreRegistryProvider } from "@pyreon/store"
@@ -781,7 +781,7 @@ configureStoreIsolation(setStoreRegistryProvider)
 app.get("*", async (c) => {
   try {
     const html = await runWithRequestContext(async () => {
-      return renderToString(h(App, null))
+      return renderToString(<App />)
     })
 
     return c.html(`<!DOCTYPE html>
@@ -806,7 +806,7 @@ export default app
 
 ### SSR with Node.js HTTP
 
-```ts
+```tsx
 import { createServer } from "node:http"
 import { renderToString, runWithRequestContext, configureStoreIsolation } from "@pyreon/runtime-server"
 import { setStoreRegistryProvider } from "@pyreon/store"
@@ -818,7 +818,7 @@ configureStoreIsolation(setStoreRegistryProvider)
 const server = createServer(async (req, res) => {
   try {
     const html = await runWithRequestContext(async () => {
-      return renderToString(h(App, null))
+      return renderToString(<App />)
     })
 
     res.writeHead(200, { "Content-Type": "text/html" })
@@ -839,13 +839,13 @@ server.listen(3000)
 
 ### Streaming SSR with Document Shell
 
-```ts
+```tsx
 import { renderToStream } from "@pyreon/runtime-server"
 import { h } from "@pyreon/core"
 import { App } from "./App"
 
 export async function handler(req: Request): Promise<Response> {
-  const appStream = renderToStream(h(App, null))
+  const appStream = renderToStream(<App />)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -889,7 +889,7 @@ export async function handler(req: Request): Promise<Response> {
 
 ### SSR with Router Integration
 
-```ts
+```tsx
 import { renderToString, runWithRequestContext } from "@pyreon/runtime-server"
 import { createRouter, prefetchLoaderData } from "@pyreon/router"
 import { h } from "@pyreon/core"
@@ -908,7 +908,7 @@ export async function handler(req: Request): Promise<Response> {
     // Prefetch loader data for the matched route
     await prefetchLoaderData(router, url.pathname + url.search)
 
-    return renderToString(h(App, { router }))
+    return renderToString(<App router={router} />)
   })
 
   return new Response(
@@ -928,13 +928,13 @@ export async function handler(req: Request): Promise<Response> {
 
 ### SSR with Head Management
 
-```ts
+```tsx
 import { renderWithHead } from "@pyreon/head"
 import { h } from "@pyreon/core"
 import { App } from "./App"
 
 export async function handler(req: Request): Promise<Response> {
-  const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(h(App, null))
+  const { html, head, htmlAttrs, bodyAttrs } = await renderWithHead(<App />)
 
   const htmlAttrStr = Object.entries(htmlAttrs)
     .map(([k, v]) => `${k}="${v}"`)
@@ -968,11 +968,11 @@ export async function handler(req: Request): Promise<Response> {
 
 Always wrap render calls in try/catch to handle errors from components, data fetching, or invalid VNode trees:
 
-```ts
+```tsx
 app.get("*", async (req, res) => {
   try {
     const html = await runWithRequestContext(async () => {
-      return renderToString(h(App, null))
+      return renderToString(<App />)
     })
     res.status(200).end(wrapHtml(html))
   } catch (err) {
@@ -996,8 +996,8 @@ app.get("*", async (req, res) => {
 
 `renderToStream` propagates errors through the stream's error channel. The `ReadableStream` will call `controller.error(err)` if any part of the render throws:
 
-```ts
-const stream = renderToStream(h(App, null))
+```tsx
+const stream = renderToStream(<App />)
 
 const reader = stream.getReader()
 try {
@@ -1021,12 +1021,12 @@ When using `new Response(stream)`, the connection will be aborted if an error oc
 
 For pages with multiple async data sources, `renderToStream` with Suspense boundaries provides a significantly better Time to First Byte (TTFB) than `renderToString`:
 
-```ts
+```tsx
 // Slower: waits for everything before sending any HTML
-const html = await renderToString(h(App, null))
+const html = await renderToString(<App />)
 
 // Faster: starts sending HTML immediately
-const stream = renderToStream(h(App, null))
+const stream = renderToStream(<App />)
 ```
 
 ### 2. Enable Store Isolation Only When Needed
@@ -1048,11 +1048,11 @@ Each component call requires a function invocation and potential `await`. Flatte
 
 Use `runWithRequestContext` to prefetch all necessary data before calling `renderToString`, rather than having each component independently fetch:
 
-```ts
+```tsx
 const html = await runWithRequestContext(async () => {
   // One prefetch call, not N component-level fetches
   await prefetchLoaderData(router, url)
-  return renderToString(h(App, null))
+  return renderToString(<App />)
 })
 ```
 

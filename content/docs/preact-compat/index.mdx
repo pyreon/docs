@@ -142,26 +142,26 @@ Preact's hyperscript function. Maps directly to Pyreon's `h()`. `createElement` 
 ```tsx
 import { h, createElement } from '@pyreon/preact-compat'
 
-const vnode = h('div', { class: 'box' }, 'Hello')
-const same = createElement('div', { class: 'box' }, 'Hello')
+const vnode = <div class="box">Hello</div>
+const same = <div class="box">Hello</div>
 ```
 
 **All element types:**
 
 ```tsx
 // HTML element
-h('div', { class: 'container' }, 'Content')
+<div class="container">Content</div>
 
 // Component
-h(MyComponent, { name: 'Alice' })
+<MyComponent name="Alice" />
 
 // Fragment
-h(Fragment, null, h('span', null, 'A'), h('span', null, 'B'))
+<Fragment><span>A</span><span>B</span></Fragment>
 
 // SVG element
-h('svg', { viewBox: '0 0 100 100' },
-  h('circle', { cx: 50, cy: 50, r: 40, fill: 'red' })
-)
+<svg viewBox="0 0 100 100">
+  <circle cx={50} cy={50} r={40} fill="red" />
+</svg>
 ```
 
 ### `Fragment`
@@ -171,10 +171,12 @@ The fragment symbol for grouping children without a wrapper DOM element.
 ```tsx
 import { h, Fragment } from '@pyreon/preact-compat'
 
-const items = h(Fragment, null,
-  h('li', null, 'Item 1'),
-  h('li', null, 'Item 2'),
-  h('li', null, 'Item 3')
+const items = (
+  <Fragment>
+    <li>Item 1</li>
+    <li>Item 2</li>
+    <li>Item 3</li>
+  </Fragment>
 )
 ```
 
@@ -189,7 +191,7 @@ Mounts a VNode tree into a DOM container. Maps to Pyreon's `mount()`.
 ```tsx
 import { h, render } from '@pyreon/preact-compat'
 
-render(h('div', null, 'Hello'), document.getElementById('app')!)
+render(<div>Hello</div>, document.getElementById('app')!)
 
 // Or with JSX
 render(<App />, document.getElementById('app')!)
@@ -225,7 +227,7 @@ class Component<P extends Props, S extends Record<string, unknown>> {
 A class-based component with `setState` and `forceUpdate`. State changes are backed by a Pyreon signal, so `setState` triggers reactive updates through Pyreon's batching system.
 
 ```tsx
-import { h, Component, render } from '@pyreon/preact-compat'
+import { Component, render } from '@pyreon/preact-compat'
 
 class Counter extends Component<{}, { count: number }> {
   constructor(props: {}) {
@@ -234,11 +236,13 @@ class Counter extends Component<{}, { count: number }> {
   }
 
   render() {
-    return h('div', null,
-      h('p', null, `Count: ${this.state.count}`),
-      h('button', {
-        onClick: () => this.setState(prev => ({ count: prev.count + 1 }))
-      }, 'Increment')
+    return (
+      <div>
+        <p>Count: {this.state.count}</p>
+        <button onClick={() => this.setState(prev => ({ count: prev.count + 1 }))}>
+          Increment
+        </button>
+      </div>
     )
   }
 }
@@ -254,23 +258,25 @@ class Form extends Component<{}, { name: string; email: string; submitted: boole
   }
 
   render() {
-    return h('form', {
-      onSubmit: (e: SubmitEvent) => {
+    return (
+      <form onSubmit={(e: SubmitEvent) => {
         e.preventDefault()
         this.setState({ submitted: true })
-      }
-    },
-      h('input', {
-        value: this.state.name,
-        onInput: (e: InputEvent) =>
-          this.setState({ name: (e.target as HTMLInputElement).value }),
-      }),
-      h('input', {
-        value: this.state.email,
-        onInput: (e: InputEvent) =>
-          this.setState({ email: (e.target as HTMLInputElement).value }),
-      }),
-      h('button', { type: 'submit' }, 'Submit')
+      }}>
+        <input
+          value={this.state.name}
+          onInput={(e: InputEvent) =>
+            this.setState({ name: (e.target as HTMLInputElement).value })
+          }
+        />
+        <input
+          value={this.state.email}
+          onInput={(e: InputEvent) =>
+            this.setState({ email: (e.target as HTMLInputElement).value })
+          }
+        />
+        <button type="submit">Submit</button>
+      </form>
     )
   }
 }
@@ -287,7 +293,7 @@ function cloneElement(vnode: VNode, props?: Props, ...children: VNodeChild[]): V
 Clones a VNode with merged props. If new children are provided, they replace the original children. The key can be overridden via props.
 
 ```tsx
-const original = h('div', { class: 'a', id: 'x' }, 'child')
+const original = <div class="a" id="x">child</div>
 const cloned = cloneElement(original, { class: 'b' })
 // cloned.props.class === 'b', cloned.props.id === 'x'
 
@@ -302,10 +308,12 @@ const withNewKey = cloneElement(original, { key: 'new-key' })
 
 ```tsx
 function Toolbar(props: { children: VNode[] }) {
-  return h('div', { class: 'toolbar' },
-    ...props.children.map(child =>
-      cloneElement(child, { class: 'toolbar-button' })
-    )
+  return (
+    <div class="toolbar">
+      {props.children.map(child =>
+        cloneElement(child, { class: 'toolbar-button' })
+      )}
+    </div>
   )
 }
 ```
@@ -325,7 +333,7 @@ toChildArray(['a', ['b', ['c']], null, false, 'd'])
 // Useful for manipulating children
 function FilteredList(props: { children: VNodeChild }) {
   const items = toChildArray(props.children)
-  return h('ul', null, ...items.slice(0, 5)) // show max 5
+  return <ul>{items.slice(0, 5)}</ul> // show max 5
 }
 ```
 
@@ -338,7 +346,7 @@ function isValidElement(x: unknown): x is VNode
 Returns `true` if the value is a VNode (has `type`, `props`, and `children` properties).
 
 ```tsx
-const vnode = h('div', null, 'Hello')
+const vnode = <div>Hello</div>
 isValidElement(vnode) // true
 isValidElement('string') // false
 isValidElement(null) // false
@@ -356,7 +364,7 @@ const Theme = createContext('light')
 
 function ThemedButton() {
   const theme = useContext(Theme) // 'light'
-  return h('button', { class: theme }, 'Click me')
+  return <button class={theme}>Click me</button>
 }
 ```
 
@@ -379,14 +387,14 @@ function Greeting() {
     es: 'Hola!',
     fr: 'Bonjour!',
   }
-  return h('p', null, messages[locale] ?? messages.en)
+  return <p>{messages[locale] ?? messages.en}</p>
 }
 
 // Usage
 render(
-  h(LocaleProvider, { locale: 'es' },
-    h(Greeting, null) // renders "Hola!"
-  ),
+  <LocaleProvider locale="es">
+    <Greeting /> {/* renders "Hola!" */}
+  </LocaleProvider>,
   document.getElementById('app')!
 )
 ```
@@ -532,11 +540,13 @@ function UserProfile(props: { userId: () => number }) {
   })
 
   return () => {
-    if (loading()) return h('div', { class: 'skeleton' })
-    if (error()) return h('div', { class: 'error' }, error())
-    return h('div', null,
-      h('h2', null, user()!.name),
-      h('p', null, user()!.email)
+    if (loading()) return <div class="skeleton" />
+    if (error()) return <div class="error">{error()}</div>
+    return (
+      <div>
+        <h2>{user()!.name}</h2>
+        <p>{user()!.email}</p>
+      </div>
     )
   }
 }
@@ -625,18 +635,22 @@ function todoReducer(state: Todo[], action: Action): Todo[] {
 function TodoApp() {
   const [todos, dispatch] = useReducer(todoReducer, [])
 
-  return h('div', null,
-    h('button', {
-      onClick: () => dispatch({ type: 'add', text: 'New todo' })
-    }, 'Add'),
-    h('ul', null,
-      () => todos().map(todo =>
-        h('li', {
-          onClick: () => dispatch({ type: 'toggle', id: todo.id }),
-          style: todo.done ? 'text-decoration: line-through' : '',
-        }, todo.text)
-      )
-    )
+  return (
+    <div>
+      <button onClick={() => dispatch({ type: 'add', text: 'New todo' })}>
+        Add
+      </button>
+      <ul>
+        {() => todos().map(todo =>
+          <li
+            onClick={() => dispatch({ type: 'toggle', id: todo.id })}
+            style={todo.done ? 'text-decoration: line-through' : ''}
+          >
+            {todo.text}
+          </li>
+        )}
+      </ul>
+    </div>
   )
 }
 ```
@@ -652,9 +666,11 @@ Returns a stable unique string (e.g. `:r0:`) scoped to the current component. De
 ```tsx
 function LabeledInput(props: { label: string }) {
   const id = useId()
-  return h(Fragment, null,
-    h('label', { for: id }, props.label),
-    h('input', { id })
+  return (
+    <>
+      <label for={id}>{props.label}</label>
+      <input id={id} />
+    </>
   )
 }
 ```
@@ -681,9 +697,11 @@ function SafeZone(props: { children: VNodeChild }) {
   })
 
   return () => error()
-    ? h('div', { class: 'error' },
-        h('p', null, 'Error: ', error()),
-        h('button', { onClick: () => setError(null) }, 'Dismiss')
+    ? (
+        <div class="error">
+          <p>Error: {error()}</p>
+          <button onClick={() => setError(null)}>Dismiss</button>
+        </div>
       )
     : props.children
 }
@@ -743,13 +761,15 @@ function TodoApp() {
     document.title = `${remaining.value} remaining`
   })
 
-  return h('div', null,
-    h('p', null, `${remaining.value} remaining`),
-    h('ul', null,
-      filteredTodos.value.map(todo =>
-        h('li', { key: todo.id }, todo.text)
-      )
-    )
+  return (
+    <div>
+      <p>{remaining.value} remaining</p>
+      <ul>
+        {filteredTodos.value.map(todo =>
+          <li key={todo.id}>{todo.text}</li>
+        )}
+      </ul>
+    </div>
   )
 }
 ```

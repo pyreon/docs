@@ -631,18 +631,16 @@ function SelectableList(props: { items: () => Item[] }) {
 
   return (
     <ul>
-      {For({
-        each: props.items,
-        by: (item) => item.id,
-        children: (item) => (
+      <For each={props.items} by={(item) => item.id}>
+        {(item) => (
           <li
             class={() => isSelected(item.id) ? 'selected' : ''}
             onClick={() => setSelectedId(item.id)}
           >
             {item.name}
           </li>
-        ),
-      })}
+        )}
+      </For>
     </ul>
   )
 }
@@ -911,16 +909,14 @@ Conditionally renders children when `when` is truthy. Optionally renders a `fall
 Renders a list reactively with keyed reconciliation.
 
 ```tsx
-{For({
-  each: () => items(),
-  by: (item) => item.id,
-  children: (item) => (
+<For each={() => items()} by={(item) => item.id}>
+  {(item) => (
     <div class="item">
       <span>{item.name}</span>
       <span>${item.price}</span>
     </div>
-  ),
-})}
+  )}
+</For>
 ```
 
 **For with complex items:**
@@ -945,17 +941,15 @@ function UserTable(props: { users: () => User[] }) {
         </tr>
       </thead>
       <tbody>
-        {For({
-          each: sortedUsers,
-          by: (u) => u.id,
-          children: (user) => (
+        <For each={sortedUsers} by={(u) => u.id}>
+          {(user) => (
             <tr>
               <td>{user.name}</td>
               <td>{user.email}</td>
               <td>{user.role}</td>
             </tr>
-          ),
-        })}
+          )}
+        </For>
       </tbody>
     </table>
   )
@@ -1117,10 +1111,8 @@ function TodoApp() {
       </div>
 
       <ul>
-        {For({
-          each: filteredTodos,
-          by: (t) => t.id,
-          children: (todo) => (
+        <For each={filteredTodos} by={(t) => t.id}>
+          {(todo) => (
             <li class={todo.done ? 'done' : ''}>
               <input
                 type="checkbox"
@@ -1130,8 +1122,8 @@ function TodoApp() {
               <span>{todo.text}</span>
               <button onClick={() => removeTodo(todo.id)}>x</button>
             </li>
-          ),
-        })}
+          )}
+        </For>
       </ul>
 
       <Show when={() => todos().length > 0}>
