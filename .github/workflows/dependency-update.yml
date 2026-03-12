@@ -34,7 +34,7 @@ jobs:
         run: bun run build
 
       - name: Create PR if changes exist
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(deps): update dependencies"
