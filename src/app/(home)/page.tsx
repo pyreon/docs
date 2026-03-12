@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { Card, Cards } from 'fumadocs-ui/components/card'
+import Link from 'next/link'
 
 const corePackages = [
   {
@@ -100,8 +100,7 @@ const fundamentalsPackages = [
   },
   {
     title: 'Validation',
-    description:
-      'Schema validation adapters for Zod, Valibot, and ArkType.',
+    description: 'Schema validation adapters for Zod, Valibot, and ArkType.',
     href: '/docs/validation',
   },
   {
@@ -118,14 +117,12 @@ const fundamentalsPackages = [
   },
   {
     title: 'Table',
-    description:
-      'TanStack Table adapter for reactive table state management.',
+    description: 'TanStack Table adapter for reactive table state management.',
     href: '/docs/table',
   },
   {
     title: 'Virtual',
-    description:
-      'TanStack Virtual adapter for efficient virtual scrolling.',
+    description: 'TanStack Virtual adapter for efficient virtual scrolling.',
     href: '/docs/virtual',
   },
 ]
@@ -139,8 +136,7 @@ const uiPackages = [
   },
   {
     title: 'Unistyle',
-    description:
-      'Responsive theming, breakpoints, and media query utilities.',
+    description: 'Responsive theming, breakpoints, and media query utilities.',
     href: '/docs/unistyle',
   },
   {
@@ -157,8 +153,7 @@ const uiPackages = [
   },
   {
     title: 'Coolgrid',
-    description:
-      'Responsive CSS grid system with Container, Row, and Col.',
+    description: 'Responsive CSS grid system with Container, Row, and Col.',
     href: '/docs/coolgrid',
   },
   {
@@ -239,9 +234,7 @@ export default function HomePage() {
 
         <div className="flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-4 py-1.5 text-sm backdrop-blur-sm">
           <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-fd-muted-foreground">
-            actively developed
-          </span>
+          <span className="text-fd-muted-foreground">actively developed</span>
         </div>
 
         <h1 className="max-w-3xl text-5xl font-extrabold tracking-tight md:text-6xl lg:text-7xl">
@@ -383,8 +376,8 @@ export default function HomePage() {
             Compatibility Layers
           </h2>
           <p className="max-w-lg text-center text-fd-muted-foreground">
-            Use the API you already know — React, Preact, Vue, or Solid — powered
-            by Pyreon&apos;s signal engine.
+            Use the API you already know — React, Preact, Vue, or Solid —
+            powered by Pyreon&apos;s signal engine.
           </p>
         </div>
         <Cards>
