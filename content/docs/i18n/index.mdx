@@ -39,6 +39,97 @@ i18n.t('farewell')                      // "Goodbye!"
 
 The `t()` function is the primary API for translations. It reads the current locale reactively, meaning that any effect, computed, or component render function that calls `t()` will automatically re-evaluate when the locale changes.
 
+## I18nProvider and useI18n
+
+Use `I18nProvider` to supply an i18n instance via context, and `useI18n` to access it from any child component. This avoids prop-drilling the i18n instance through your component tree.
+
+```tsx
+import { I18nProvider, useI18n, createI18n } from '@pyreon/i18n'
+
+const i18n = createI18n({
+  locale: 'en',
+  messages: { en: { greeting: 'Hello, {{name}}!' } },
+})
+
+// Root component
+function App() {
+  return (
+    <I18nProvider instance={i18n}>
+      <Greeting />
+    </I18nProvider>
+  )
+}
+
+// Child component — access i18n via context
+function Greeting() {
+  const { t, locale } = useI18n()
+  return <h1>{t('greeting', { name: 'World' })}</h1>
+}
+```
+
+`I18nProvider` accepts `{ instance: I18nInstance, children }` props. `useI18n()` throws if called outside an `I18nProvider`. The `I18nContext` is also exported for advanced use cases.
+
+## Trans Component
+
+The `Trans` component enables rich JSX interpolation within translation strings. Use it when your translations contain inline markup like bold text, links, or other components.
+
+```tsx
+import { Trans, useI18n } from '@pyreon/i18n'
+
+// Translation: "You have <bold>{{count}}</bold> unread messages"
+function Messages({ count }) {
+  const { t } = useI18n()
+  return (
+    <Trans
+      t={t}
+      i18nKey="messages.unread"
+      values={{ count }}
+      components={{
+        bold: (children) => <strong>{children}</strong>,
+      }}
+    />
+  )
+  // Renders: You have <strong>5</strong> unread messages
+}
+
+// Translation: "Read our <terms>terms of service</terms> and <privacy>privacy policy</privacy>"
+function Legal() {
+  const { t } = useI18n()
+  return (
+    <Trans
+      t={t}
+      i18nKey="legal"
+      components={{
+        terms: (children) => <a href="/terms">{children}</a>,
+        privacy: (children) => <a href="/privacy">{children}</a>,
+      }}
+    />
+  )
+}
+```
+
+**TransProps:**
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `i18nKey` | `string` | Translation key (supports namespace:key syntax) |
+| `values` | `InterpolationValues` | Interpolation values for placeholder syntax |
+| `components` | `Record<string, (children) => VNode>` | Component map for rich interpolation |
+| `t` | `(key, values?) => string` | The i18n `t` function |
+
+## parseRichText
+
+The `parseRichText` function parses tagged translation strings into an array of strings and `{ tag, children }` objects. It is used internally by `Trans` but is exported for custom rendering scenarios.
+
+```ts
+import { parseRichText } from '@pyreon/i18n'
+
+parseRichText('Hello <bold>world</bold>, click <link>here</link>')
+// → ["Hello ", { tag: "bold", children: "world" }, ", click ", { tag: "link", children: "here" }]
+```
+
+Parses `<tag>content</tag>` patterns into an array of strings and `{ tag, children }` objects. Tags that do not have a matching closing tag are left as plain text.
+
 ## createI18n Configuration
 
 The `createI18n` function accepts an `I18nOptions` object with the following properties:
@@ -1158,6 +1249,56 @@ Create a reactive i18n instance.
 | `addMessages(locale, messages, ns?)` | `(locale, messages, ns?) => void` | Add/merge translations at runtime |
 | `availableLocales` | `Computed<string[]>` | All locales with registered messages |
 
+### `I18nProvider`
+
+Provides an i18n instance to the component tree via context.
+
+```tsx
+function I18nProvider(props: {
+  instance: I18nInstance
+  children: VNode
+}): VNode
+```
+
+### `useI18n()`
+
+Retrieves the i18n instance from the nearest `I18nProvider`. Throws if no provider is found.
+
+```ts
+function useI18n(): I18nInstance
+```
+
+### `I18nContext`
+
+The raw context object used by `I18nProvider` and `useI18n`. Exported for advanced use cases where you need direct context access.
+
+### `Trans`
+
+Rich JSX interpolation component for translations containing inline markup.
+
+```tsx
+function Trans(props: TransProps): VNode
+```
+
+**TransProps:**
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `i18nKey` | `string` | Translation key (supports namespace:key syntax) |
+| `values` | `InterpolationValues` | Interpolation values for placeholder syntax |
+| `components` | `Record<string, (children) => VNode>` | Component map for rich interpolation |
+| `t` | `(key, values?) => string` | The i18n `t` function |
+
+### `parseRichText(text)`
+
+Parse a tagged translation string into an array of strings and `{ tag, children }` objects.
+
+```ts
+function parseRichText(
+  text: string,
+): Array<string | { tag: string; children: string }>
+```
+
 ### `interpolate(template, values?)`
 
 Replace `{{key}}` placeholders in a string with values from the given record.
@@ -1192,3 +1333,4 @@ function resolvePluralCategory(
 | `NamespaceLoader` | `(locale: string, namespace: string) => Promise<TranslationDictionary \| undefined>` |
 | `InterpolationValues` | `Record<string, string \| number>` |
 | `PluralRules` | `Record<string, (count: number) => string>` |
+| `TransProps` | Props for the `Trans` component |

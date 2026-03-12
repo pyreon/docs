@@ -670,6 +670,60 @@ counter.increment()
 // patches: [] — listener was removed
 ```
 
+### `applyPatch` -- Apply JSON patches to a model instance
+
+```ts
+import { applyPatch } from '@pyreon/state-tree'
+
+// Apply a single patch
+applyPatch(counter, { op: 'replace', path: '/count', value: 10 })
+
+// Apply multiple patches at once (batched)
+applyPatch(counter, [
+  { op: 'replace', path: '/count', value: 1 },
+  { op: 'replace', path: '/count', value: 2 },
+])
+
+// Nested model patches use JSON pointer paths
+applyPatch(user, { op: 'replace', path: '/profile/name', value: 'Alice' })
+```
+
+Only `"replace"` operations are supported (matching the patches emitted by `onPatch`). Paths use JSON pointer format: `"/count"` for top-level properties, `"/profile/name"` for nested model instances.
+
+**Use cases:**
+- **Undo/redo** -- replay recorded patches
+- **Time-travel debugging** -- apply saved patch sequences
+- **Remote sync** -- apply patches received from a server
+
+### Combined Example: Undo/Redo with `onPatch` and `applyPatch`
+
+```ts
+const history: Patch[][] = []
+let current: Patch[] = []
+
+onPatch(root, (patch) => {
+  current.push(patch)
+})
+
+function commit() {
+  if (current.length > 0) {
+    history.push(current)
+    current = []
+  }
+}
+
+function undo() {
+  const last = history.pop()
+  if (last) {
+    // Apply inverse patches (restore previous values)
+    applyPatch(root, last.map(p => ({
+      ...p,
+      value: /* previous value from snapshot */
+    })))
+  }
+}
+```
+
 ### Real-World: Syncing Patches to a Server
 
 ```ts
@@ -1185,6 +1239,10 @@ Restore a model instance from a snapshot. Batched for a single reactive flush. K
 
 Subscribe to state mutations as JSON patches. Returns an unsubscribe function. Throws if the argument is not a model instance.
 
+### `applyPatch(instance, patch)`
+
+Apply one or more JSON patches to a model instance. Accepts a single `Patch` or an array of `Patch` objects (batched). Only `"replace"` operations are supported. Paths use JSON pointer format. Throws if the argument is not a model instance.
+
 ### `addMiddleware(instance, middleware)`
 
 Intercept action calls. Returns an unsubscribe function. Throws if the argument is not a model instance.
@@ -1213,12 +1271,13 @@ Destroy all hook singletons.
 
 ## Error Handling
 
-All public functions that accept a model instance (`getSnapshot`, `applySnapshot`, `onPatch`, `addMiddleware`) validate their input and throw a descriptive error if called on a non-model-instance:
+All public functions that accept a model instance (`getSnapshot`, `applySnapshot`, `onPatch`, `applyPatch`, `addMiddleware`) validate their input and throw a descriptive error if called on a non-model-instance:
 
 ```ts
 getSnapshot({})        // Error: [@pyreon/state-tree] getSnapshot: not a model instance
 applySnapshot({}, {})  // Error: [@pyreon/state-tree] applySnapshot: not a model instance
 onPatch({}, () => {})  // Error: [@pyreon/state-tree] onPatch: not a model instance
+applyPatch({}, {})     // Error: [@pyreon/state-tree] applyPatch: not a model instance
 addMiddleware({}, fn)  // Error: [@pyreon/state-tree] addMiddleware: not a model instance
 ```
 

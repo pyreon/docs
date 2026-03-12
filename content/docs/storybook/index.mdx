@@ -1,0 +1,135 @@
+---
+title: Storybook
+description: Storybook renderer for developing and documenting Pyreon components.
+---
+
+## Overview
+
+`@pyreon/storybook` is a custom Storybook renderer that lets you develop, test, and document Pyreon components in isolation using Storybook's UI. It integrates directly with the Pyreon runtime so your stories behave exactly like real application code.
+
+## Installation
+
+```bash
+bun add -D @pyreon/storybook
+```
+
+## Setup
+
+Configure Storybook to use the Pyreon renderer in `.storybook/main.ts`:
+
+```ts
+import type { StorybookConfig } from "@pyreon/storybook"
+
+const config: StorybookConfig = {
+  stories: ["../src/**/*.stories.@(ts|tsx)"],
+  framework: "@pyreon/storybook",
+}
+
+export default config
+```
+
+## Writing Stories
+
+Stories use the CSF3 (Component Story Format 3) syntax. Each story file exports a default `meta` object describing the component and named exports for individual stories.
+
+```tsx
+import type { Meta, StoryObj } from "@pyreon/storybook"
+import { Button } from "./Button"
+
+const meta = {
+  component: Button,
+  title: "Components/Button",
+  args: { label: "Click me" },
+  tags: ["autodocs"],
+} satisfies Meta<typeof Button>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Primary: Story = {
+  args: { variant: "primary" },
+}
+
+export const Secondary: Story = {
+  args: { variant: "secondary" },
+}
+```
+
+## Custom Render Functions
+
+Override the default rendering with a custom `render` function when you need to wrap or compose components:
+
+```tsx
+export const WithIcon: Story = {
+  render: (args) => (
+    <div class="flex gap-2">
+      <span>★</span>
+      <Button {...args} />
+    </div>
+  ),
+}
+```
+
+## Decorators
+
+Decorators wrap stories with providers, layouts, or other contextual elements:
+
+```tsx
+const meta = {
+  component: ThemeCard,
+  decorators: [
+    (storyFn, context) => (
+      <ThemeProvider theme="dark">
+        {storyFn(context.args, context)}
+      </ThemeProvider>
+    ),
+  ],
+} satisfies Meta<typeof ThemeCard>
+```
+
+Decorators can be applied at the story level, the component (meta) level, or globally in `.storybook/preview.ts`.
+
+## Interaction Testing
+
+Use `play` functions to simulate user interactions and run assertions against the rendered output:
+
+```tsx
+export const Clicked: Story = {
+  play: async ({ canvasElement }) => {
+    const button = canvasElement.querySelector("button")!
+    button.click()
+    // assert...
+  },
+}
+```
+
+## How It Works
+
+The renderer uses `mount()` from `@pyreon/runtime-dom` to render stories into the Storybook canvas. Each re-render (for example, when args change via the controls panel) unmounts the previous story and mounts a fresh instance. The `renderToCanvas` function manages this lifecycle, ensuring clean teardown and setup on every update.
+
+## API Reference
+
+| Export | Description |
+| --- | --- |
+| `renderToCanvas(options, canvas)` | Core render function for Storybook integration |
+| `defaultRender(component, args)` | Default render: `h(component, args)` |
+
+### Type Exports
+
+| Type | Description |
+| --- | --- |
+| `Meta<TComponent>` | Story metadata (component, title, args, decorators, etc.) |
+| `StoryObj<TMeta>` | Individual story definition |
+| `StoryFn<TArgs>` | Story function type |
+| `DecoratorFn<TArgs>` | Decorator function type |
+| `StoryContext<TArgs>` | Context passed to stories and decorators |
+| `PyreonRenderer` | Renderer descriptor for Storybook |
+| `InferProps<T>` | Extract props type from a component |
+
+### Re-exports
+
+The package re-exports the following from Pyreon for convenience, so you do not need to import them separately in story files:
+
+**Functions:** `h`, `Fragment`, `signal`, `computed`, `effect`, `mount`
+
+**Types:** corresponding type definitions for the above

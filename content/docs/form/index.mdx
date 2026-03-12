@@ -816,6 +816,127 @@ interface FieldArrayItem<T> {
 }
 ```
 
+## useField
+
+`useField` extracts a single field's state from a form, providing a focused API for building isolated field components.
+
+```tsx
+import { useField } from '@pyreon/form'
+
+function EmailField({ form }) {
+  const field = useField(form, 'email')
+  return (
+    <>
+      <input {...field.register()} />
+      {field.showError() && <span class="error">{field.error()}</span>}
+    </>
+  )
+}
+```
+
+**Returns `UseFieldResult<T>`:**
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `value` | `Signal<T>` | Current field value |
+| `error` | `Signal<ValidationError>` | Field error message |
+| `touched` | `Signal<boolean>` | Whether the field has been touched |
+| `dirty` | `Signal<boolean>` | Whether the value differs from initial |
+| `setValue` | `(value: T) => void` | Set the field value |
+| `setTouched` | `() => void` | Mark the field as touched |
+| `reset` | `() => void` | Reset to initial value |
+| `register` | `(opts?) => FieldRegisterProps` | Register props for input binding |
+| `hasError` | `Computed<boolean>` | Whether the field has an error |
+| `showError` | `Computed<boolean>` | Whether to display the error (touched + has error) |
+
+## useWatch
+
+`useWatch` lets you watch field values reactively without accessing the full form state.
+
+```tsx
+import { useWatch } from '@pyreon/form'
+
+// Watch a single field
+const email = useWatch(form, 'email')
+email() // current email value
+
+// Watch multiple fields
+const [first, last] = useWatch(form, ['firstName', 'lastName'])
+
+// Watch all fields
+const all = useWatch(form)
+all() // { email: '...', password: '...' }
+```
+
+## useFormState
+
+`useFormState` subscribes to form-level state, optionally with a selector for fine-grained reactivity.
+
+```tsx
+import { useFormState } from '@pyreon/form'
+
+// Full state
+const state = useFormState(form)
+state() // { isSubmitting, isValid, isDirty, errors, touchedFields, dirtyFields, submitCount, submitError }
+
+// With selector for fine-grained reactivity
+const canSubmit = useFormState(form, (s) => s.isValid && !s.isSubmitting)
+```
+
+**`FormStateSummary` shape:**
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `isSubmitting` | `boolean` | Whether the form is submitting |
+| `isValidating` | `boolean` | Whether async validation is running |
+| `isValid` | `boolean` | Whether all fields are valid |
+| `isDirty` | `boolean` | Whether any field is dirty |
+| `submitCount` | `number` | Number of submit attempts |
+| `submitError` | `unknown` | Last submit error |
+| `touchedFields` | `Partial<Record<K, boolean>>` | Map of touched fields |
+| `dirtyFields` | `Partial<Record<K, boolean>>` | Map of dirty fields |
+| `errors` | `Partial<Record<K, ValidationError>>` | Map of field errors |
+
+## FormProvider + useFormContext
+
+`FormProvider` and `useFormContext` enable context-based form access, eliminating the need to pass the form object through props.
+
+```tsx
+import { FormProvider, useFormContext, useForm } from '@pyreon/form'
+
+// Parent component
+function SignupPage() {
+  const form = useForm({
+    initialValues: { email: '', password: '' },
+    onSubmit: async (values) => { /* ... */ },
+  })
+  return (
+    <FormProvider form={form}>
+      <EmailField />
+      <PasswordField />
+      <SubmitButton />
+    </FormProvider>
+  )
+}
+
+// Child components — no prop drilling
+function EmailField() {
+  const form = useFormContext<{ email: string; password: string }>()
+  return <input {...form.register('email')} />
+}
+
+function SubmitButton() {
+  const form = useFormContext()
+  return (
+    <button type="submit" disabled={form.isSubmitting() || !form.isValid()}>
+      Submit
+    </button>
+  )
+}
+```
+
+`FormProvider` accepts `{ form, children }` props. `useFormContext()` throws if called outside a `FormProvider`.
+
 ## Real-World Examples
 
 ### Login Form
@@ -1171,6 +1292,47 @@ Create a dynamic array of form fields with stable keys.
 function useFieldArray<T>(initial?: T[]): UseFieldArrayResult<T>
 ```
 
+### `useField(form, field)`
+
+Extract a single field's state from a form, returning a `UseFieldResult<T>` with the field's signals, setters, and convenience computeds (`hasError`, `showError`).
+
+```ts
+function useField<TValues, K extends keyof TValues>(
+  form: FormState<TValues>,
+  field: K,
+): UseFieldResult<TValues[K]>
+```
+
+### `useWatch(form, field?)`
+
+Watch one or more field values reactively. Pass a single field name to get a signal for that value, an array of field names to get an array of signals, or omit the argument to watch all values.
+
+```ts
+function useWatch<TValues>(form: FormState<TValues>): Computed<TValues>
+function useWatch<TValues, K extends keyof TValues>(form: FormState<TValues>, field: K): Computed<TValues[K]>
+function useWatch<TValues, K extends keyof TValues>(form: FormState<TValues>, fields: K[]): Computed<TValues[K]>[]
+```
+
+### `useFormState(form, selector?)`
+
+Subscribe to form-level state. Returns a computed signal of `FormStateSummary`, or a derived value if a selector is provided.
+
+```ts
+function useFormState<TValues>(form: FormState<TValues>): Computed<FormStateSummary<TValues>>
+function useFormState<TValues, R>(form: FormState<TValues>, selector: (state: FormStateSummary<TValues>) => R): Computed<R>
+```
+
+### `FormProvider` + `useFormContext()`
+
+Provide a form via context so descendant components can access it without prop drilling.
+
+```ts
+function FormProvider(props: { form: FormState<any>; children: any }): JSX.Element
+function useFormContext<TValues>(): FormState<TValues>
+```
+
+`useFormContext()` throws if called outside a `FormProvider`.
+
 ## Type Exports
 
 | Type | Description |
@@ -1184,3 +1346,5 @@ function useFieldArray<T>(initial?: T[]): UseFieldArrayResult<T>
 | `SchemaValidateFn<TValues>` | Schema-level validator function |
 | `FieldArrayItem<T>` | Item in a field array (`{ key: number, value: Signal<T> }`) |
 | `UseFieldArrayResult<T>` | Return type of `useFieldArray` |
+| `UseFieldResult<T>` | Return type of `useField` |
+| `FormStateSummary<TValues>` | Shape returned by `useFormState` |

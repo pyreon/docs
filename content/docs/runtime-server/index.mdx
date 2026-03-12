@@ -1069,4 +1069,4 @@ The renderer already uses `Promise.all` for array children, meaning sibling asyn
 | `renderToString(root)` | `(VNode \| null) => Promise<string>` | Render VNode tree to complete HTML string |
 | `renderToStream(root)` | `(VNode \| null) => ReadableStream<string>` | Render VNode tree to progressive HTML stream |
 | `runWithRequestContext(fn)` | `<T>(fn: () => Promise<T>) => Promise<T>` | Run function with isolated context and store registry |
-| `configureStoreIsolation(setter)` | `(fn: (provider: () => Map) => void) => void` | Enable per-request store isolation for concurrent SSR |
+| `configureStoreIsolation(setter)` | `(fn: (provider: () => Map<string, unknown>) => void) => void` | Enable per-request store isolation for concurrent SSR |
