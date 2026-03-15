@@ -19,9 +19,9 @@
     "check": "bun run typecheck && bun run lint && bun run build"
   },
   "dependencies": {
-    "fumadocs-core": "^16.6.16",
-    "fumadocs-mdx": "^14.2.9",
-    "fumadocs-ui": "^16.6.16",
+    "fumadocs-core": "^16.6.17",
+    "fumadocs-mdx": "^14.2.10",
+    "fumadocs-ui": "^16.6.17",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"

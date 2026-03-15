@@ -5,6 +5,8 @@ description: JSX reactive transform that wraps dynamic expressions in reactive g
 
 `@pyreon/compiler` provides the JSX transform that makes Pyreon's fine-grained reactivity work. It analyzes JSX expressions at build time and wraps dynamic values in `() =>` arrow functions so the runtime receives reactive getters instead of eagerly-evaluated snapshots. It also performs static VNode hoisting and template emission for optimal DOM creation performance.
 
+<PackageBadge name="@pyreon/compiler" href="/docs/compiler" />
+
 ## Installation
 
 ```package-install

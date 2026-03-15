@@ -5,6 +5,8 @@ description: Signals-based reactive primitives powering Pyreon's fine-grained re
 
 `@pyreon/reactivity` is the foundation of Pyreon's reactivity system. It provides signals, computed values, effects, stores, and other primitives that enable fine-grained, automatic dependency tracking without a virtual DOM. Every reactive update in Pyreon flows through these primitives.
 
+<PackageBadge name="@pyreon/reactivity" href="/docs/reactivity" />
+
 ## Installation
 
 ```package-install
@@ -69,6 +71,10 @@ name.label = "currentUserName"
 ```
 
 The `name` option sets a debug label that appears in devtools, `debug()` output, and signal tracing.
+
+<PropTable title="SignalOptions" props={[
+  { name: "name", type: "string", description: "Debug label for devtools and signal tracing" },
+]} />
 
 ### Peeking Without Tracking
 
@@ -1435,29 +1441,46 @@ editor.redo() // current() === "Hello, World"
 
 ## Exports Summary
 
-| Export | Description |
-|--------|-------------|
-| `signal` | Create a reactive signal |
-| `computed` | Create a derived computed value |
-| `effect` | Create a reactive side effect |
-| `renderEffect` | Lightweight effect for DOM bindings |
-| `_bind` | Compiler-internal static-dep binding |
-| `batch` | Batch multiple signal updates |
-| `nextTick` | Wait for microtask flush |
-| `watch` | Watch a source with old/new callback and cleanup |
-| `cell` | Lightweight class-based reactive cell |
-| `Cell` | Cell class constructor |
-| `createStore` | Deep reactive proxy store |
-| `isStore` | Check if a value is a store proxy |
-| `reconcile` | Surgical diff into a store |
-| `createResource` | Async reactive data fetcher |
-| `createSelector` | O(1) equality selector |
-| `effectScope` | Create a new EffectScope |
-| `EffectScope` | EffectScope class |
-| `getCurrentScope` | Get the active EffectScope |
-| `setCurrentScope` | Set the active EffectScope |
-| `runUntracked` | Run without tracking dependencies |
-| `setErrorHandler` | Set the global effect error handler |
-| `onSignalUpdate` | Register a signal write listener (debug) |
-| `why` | Trace the next signal update (debug) |
-| `inspectSignal` | Print signal state to console (debug) |
+### Core Primitives
+
+<APICard name="signal" type="function" signature="signal<T>(value: T, options?: { name?: string }): Signal<T>" description="Creates a reactive signal — the fundamental unit of reactivity in Pyreon." />
+
+<APICard name="computed" type="function" signature="computed<T>(fn: () => T, options?: { equals?: (a: T, b: T) => boolean }): Computed<T>" description="Creates a lazy derived value that re-evaluates when its dependencies change." />
+
+<APICard name="effect" type="function" signature="effect(fn: () => void): Effect" description="Runs a function and re-runs it whenever its reactive dependencies change." />
+
+<APICard name="watch" type="function" signature="watch<T>(source: () => T, cb: (value: T, prev: T) => (() => void) | void): () => void" description="Watches a reactive source with old/new values and optional cleanup." />
+
+### Batching & Scheduling
+
+<APICard name="batch" type="function" signature="batch(fn: () => void): void" description="Batches multiple signal updates into a single reactive flush." />
+
+<APICard name="nextTick" type="function" signature="nextTick(): Promise<void>" description="Returns a promise that resolves after the current microtask flush." />
+
+### Stores
+
+<APICard name="createStore" type="function" signature="createStore<T extends object>(initial: T): T" description="Creates a deep reactive proxy store with automatic nested tracking." />
+
+<APICard name="reconcile" type="function" signature="reconcile<T>(store: T, data: T): void" description="Surgically diffs new data into an existing store, minimizing reactive updates." />
+
+### Resources
+
+<APICard name="createResource" type="function" signature="createResource<T>(fetcher: () => Promise<T>): Resource<T>" description="Creates an async reactive resource with loading/error/data signals." />
+
+### Scopes & Utilities
+
+<APICard name="effectScope" type="function" signature="effectScope(): EffectScope" description="Creates a new EffectScope for grouping and disposing effects together." />
+
+<APICard name="runUntracked" type="function" signature="runUntracked<T>(fn: () => T): T" description="Runs a function without tracking any reactive dependencies." />
+
+<APICard name="createSelector" type="function" signature="createSelector<T>(source: () => T): (key: T) => boolean" description="Creates an O(1) equality selector for efficient list item matching." />
+
+### Debug Utilities
+
+<APICard name="setErrorHandler" type="function" signature="setErrorHandler(handler: (error: unknown) => void): void" description="Sets the global error handler for uncaught errors in effects." />
+
+<APICard name="onSignalUpdate" type="function" signature="onSignalUpdate(listener: (signal: Signal<unknown>) => void): () => void" description="Registers a listener called on every signal write. Useful for devtools." />
+
+<APICard name="why" type="function" signature="why(): void" description="Traces the next signal update to console, showing which signal triggered which effects." />
+
+<APICard name="inspectSignal" type="function" signature="inspectSignal(signal: Signal<unknown>): void" description="Prints a signal's current state, subscribers, and debug info to console." />

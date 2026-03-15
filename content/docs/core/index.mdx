@@ -5,6 +5,8 @@ description: Component model, VNode types, JSX runtime, lifecycle hooks, and bui
 
 `@pyreon/core` provides the component model for Pyreon. It includes the hyperscript function (`h`), JSX runtime, lifecycle hooks, context system, ref system, and built-in control flow components like `Show`, `For`, `Switch`, `Portal`, `Suspense`, and `ErrorBoundary`.
 
+<PackageBadge name="@pyreon/core" href="/docs/core" />
+
 ## Installation
 
 ```package-install
@@ -904,6 +906,15 @@ function DrawingCanvas() {
 
 Conditionally render children based on a reactive condition. The `when` prop must be a reactive accessor (a function). Children render when the return value is truthy; the `fallback` renders when falsy.
 
+<PropTable
+  title="Show Props"
+  props={[
+    { name: "when", type: "() => boolean", required: true, description: "Reactive accessor that determines whether children or fallback render." },
+    { name: "fallback", type: "VNodeChild", description: "Content to render when when() returns a falsy value." },
+    { name: "children", type: "VNodeChild", required: true, description: "Content to render when when() returns a truthy value." },
+  ]}
+/>
+
 ```tsx
 import { Show } from "@pyreon/core"
 import { signal } from "@pyreon/reactivity"
@@ -1025,6 +1036,15 @@ function NotificationBanner(props: { notification: () => Notification }) {
 ### For
 
 Efficient reactive list rendering with keyed reconciliation. Unlike a plain `.map()`, `For` never re-creates VNodes for existing keys -- only new keys invoke the render function. Structural mutations (swap, sort, filter) are O(n) key scan + O(k) DOM moves where k is the number of actually displaced entries.
+
+<PropTable
+  title="For Props"
+  props={[
+    { name: "each", type: "() => T[]", required: true, description: "Reactive accessor returning the source array to iterate over." },
+    { name: "by", type: "(item: T, index: number) => string | number", required: true, description: "Key function for unique, stable identifiers. Used for reconciliation." },
+    { name: "children", type: "(item: T) => VNode", required: true, description: "Render function called once per unique key." },
+  ]}
+/>
 
 ```tsx
 import { For } from "@pyreon/core"
@@ -1707,33 +1727,28 @@ Dispatch an error to the nearest active `ErrorBoundary`. Returns `true` if the b
 
 ## Exports Summary
 
-| Export | Description |
-|--------|-------------|
-| `h` | Hyperscript function (JSX compile target) |
-| `Fragment` | Fragment symbol for wrapper-less rendering |
-| `EMPTY_PROPS` | Shared empty props sentinel |
-| `defineComponent` | Identity wrapper marking a component |
-| `onMount` | Register a mount callback (optionally returns cleanup) |
-| `onUnmount` | Register an unmount callback |
-| `onUpdate` | Register a post-update callback |
-| `onErrorCaptured` | Register an error handler for child errors |
-| `createContext` | Create a context with a default value |
-| `useContext` | Read the nearest context value |
-| `withContext` | Provide a context value during a function |
-| `pushContext` / `popContext` | Low-level context stack manipulation (renderer) |
-| `setContextStackProvider` | Override context stack for SSR isolation |
-| `createRef` | Create a mutable DOM ref |
-| `Show` | Conditional rendering with `when` accessor |
-| `Switch` / `Match` | Multi-branch conditional rendering |
-| `For` | Keyed reactive list rendering |
-| `Portal` | Render into a different DOM target |
-| `Dynamic` | Render a component or element dynamically |
-| `lazy` | Lazily load a component module |
-| `Suspense` | Show fallback while lazy components load |
-| `ErrorBoundary` | Catch and display errors with reset capability |
-| `mapArray` | Keyed reactive list mapping with cache eviction |
-| `registerErrorHandler` | Register global error handler for telemetry |
-| `reportError` | Report an error to registered handlers |
-| `runWithHooks` | Run a component with lifecycle tracking (renderer internal) |
-| `propagateError` | Walk error handlers (renderer internal) |
-| `dispatchToErrorBoundary` | Dispatch to nearest error boundary (renderer internal) |
+<APICard name="defineComponent" type="component" signature="defineComponent<P>(setup: (props: P) => VNode | (() => VNode)): Component<P>" description="Marks a function as a Pyreon component for tooling and compiler optimizations." />
+
+<APICard name="h" type="function" signature="h(type: string | ComponentFn | symbol, props: Props | null, ...children: VNodeChild[]): VNode" description="Hyperscript function and JSX compile target. Creates VNode objects that describe the UI tree." />
+
+<APICard name="Show" type="component" signature="Show(props: { when: () => boolean; fallback?: VNodeChild; children: VNodeChild }): VNode" description="Conditionally renders children when the reactive `when` accessor returns a truthy value. Renders `fallback` otherwise." />
+
+<APICard name="For" type="component" signature="For<T>(props: { each: () => T[]; by: (item: T, index: number) => string | number; children: (item: T) => VNode }): VNode" description="Keyed reactive list rendering with O(n) reconciliation. Only new keys invoke the render function; existing keys reuse cached VNodes." />
+
+<APICard name="Switch/Match" type="component" signature="Switch(props: { fallback?: VNodeChild; children: Match[] }): VNode" description="Multi-branch conditional rendering. Evaluates each Match child in order and renders the first whose `when()` is truthy." />
+
+<APICard name="Portal" type="component" signature="Portal(props: { target: Element; children: VNodeChild }): VNode" description="Renders children into a different DOM node, escaping the current parent tree. Useful for modals, tooltips, and overlays." />
+
+<APICard name="Suspense" type="component" signature="Suspense(props: { fallback: VNodeChild; children: VNodeChild }): VNode" description="Shows a fallback while lazy child components are loading. Detects the `__loading()` signal on lazy component types." />
+
+<APICard name="ErrorBoundary" type="component" signature="ErrorBoundary(props: { fallback: (err: unknown, reset: () => void) => VNodeChild; children: VNodeChild }): VNode" description="Catches errors thrown by child components and renders a fallback UI with an optional reset function." />
+
+<APICard name="createRef" type="function" signature="createRef<T = unknown>(): Ref<T>" description="Creates a mutable ref container ({ current: T | null }) for holding DOM element references. The runtime sets and clears `current` automatically." />
+
+<APICard name="provide/inject" type="function" signature="createContext<T>(defaultValue: T): Context<T> / useContext<T>(ctx: Context<T>): T / withContext<T>(ctx: Context<T>, value: T, fn: () => void): void" description="Context system for dependency injection without prop-drilling. Create a context, provide values down the tree, and read the nearest value with useContext." />
+
+<APICard name="onMount" type="hook" signature="onMount(callback: () => void | (() => void)): void" description="Registers a callback to run after the component mounts to the DOM. Optionally return a cleanup function that runs on unmount." />
+
+<APICard name="onUnmount" type="hook" signature="onUnmount(callback: () => void): void" description="Registers a callback to run when the component is removed from the DOM. Use for cleanup not covered by onMount's return value." />
+
+<APICard name="onUpdate" type="hook" signature="onUpdate(callback: () => void): void" description="Registers a callback to run after each reactive update within the component. Fires via microtask after effects settle, so the DOM is up-to-date." />

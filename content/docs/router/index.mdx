@@ -5,6 +5,8 @@ description: Type-safe client-side router with nested routes, navigation guards,
 
 `@pyreon/router` is Pyreon's type-safe client-side router. It supports nested routes, TypeScript param inference from path strings, navigation guards, data loaders, lazy loading with retries, scroll restoration, and both hash and history mode.
 
+<PackageBadge name="@pyreon/router" href="/docs/router" />
+
 ## Installation
 
 ```package-install
@@ -1671,40 +1673,82 @@ export async function handleRequest(req: Request): Promise<Response> {
 
 ## Exports Summary
 
-| Export | Kind | Description |
-|--------|------|-------------|
-| `createRouter` | Function | Create a router instance |
-| `RouterProvider` | Component | Provide router to component tree |
-| `RouterView` | Component | Render matched route component |
-| `RouterLink` | Component | Navigation link with active classes and prefetching |
-| `useRouter` | Hook | Access the router instance |
-| `useRoute` | Hook | Access the current route (reactive signal) |
-| `RouterContext` | Context | Router context for advanced use |
-| `lazy` | Function | Lazy-load a route component with retries |
-| `useLoaderData` | Hook | Read data from the route's loader |
-| `prefetchLoaderData` | Function | SSR: prefetch loader data |
-| `serializeLoaderData` | Function | SSR: serialize loader data for hydration |
-| `hydrateLoaderData` | Function | Client: hydrate serialized loader data |
-| `resolveRoute` | Function | Resolve a path against route tree |
-| `buildPath` | Function | Build a path from pattern + params |
-| `findRouteByName` | Function | Find a route record by name |
-| `parseQuery` | Function | Parse a query string (single values) |
-| `parseQueryMulti` | Function | Parse query string preserving duplicates |
-| `stringifyQuery` | Function | Stringify a query object |
-| `Router` | Type | Router interface |
-| `RouterOptions` | Type | Router options interface |
-| `RouteRecord` | Type | Route record interface |
-| `RouteComponent` | Type | Component or LazyComponent |
-| `LazyComponent` | Type | Lazy component wrapper |
-| `ResolvedRoute` | Type | Resolved route interface |
-| `RouteMeta` | Type | Route metadata interface (extendable) |
-| `NavigationGuard` | Type | Guard function type |
-| `NavigationGuardResult` | Type | Guard return type |
-| `AfterEachHook` | Type | After-navigation hook type |
-| `LoaderContext` | Type | Loader function context |
-| `RouteLoaderFn` | Type | Loader function type |
-| `ScrollBehaviorFn` | Type | Scroll behavior function type |
-| `ExtractParams` | Type | Extract typed params from path string |
-| `RouterProviderProps` | Type | RouterProvider props |
-| `RouterViewProps` | Type | RouterView props |
-| `RouterLinkProps` | Type | RouterLink props |
+### Functions
+
+<APICard name="createRouter" type="function" signature="createRouter(options: RouterOptions | RouteRecord[]): Router" description="Create a router instance with the given options or shorthand route array." />
+
+<APICard name="lazy" type="function" signature="lazy(loader: () => Promise<ComponentFn | { default: ComponentFn }>, options?: { loading?: ComponentFn; error?: ComponentFn }): LazyComponent" description="Lazy-load a route component with automatic retries and stale chunk detection." />
+
+<APICard name="resolveRoute" type="function" signature="resolveRoute(path: string, routes: RouteRecord[]): ResolvedRoute" description="Resolve a raw path (including query string and hash) against the route tree." />
+
+<APICard name="buildPath" type="function" signature="buildPath(pattern: string, params: Record<string, string>): string" description="Build a path string from a route pattern and params, encoding param values." />
+
+<APICard name="findRouteByName" type="function" signature="findRouteByName(name: string, routes: RouteRecord[]): RouteRecord | null" description="Find a route record by name with recursive search." />
+
+<APICard name="parseQuery" type="function" signature="parseQuery(query: string): Record<string, string>" description="Parse a query string into a record of single string values. Duplicate keys are overwritten (last wins)." />
+
+<APICard name="parseQueryMulti" type="function" signature="parseQueryMulti(query: string): Record<string, string | string[]>" description="Parse a query string preserving duplicate keys as arrays." />
+
+<APICard name="stringifyQuery" type="function" signature="stringifyQuery(params: Record<string, string>): string" description="Convert a query object to a query string with a leading '?'. Returns empty string if the object is empty." />
+
+<APICard name="prefetchLoaderData" type="function" signature="prefetchLoaderData(router: Router, url: string): Promise<void>" description="SSR: prefetch all loader data for the matched route at the given URL." />
+
+<APICard name="serializeLoaderData" type="function" signature="serializeLoaderData(router: Router): Record<string, unknown>" description="SSR: serialize the router's loader data for embedding in HTML." />
+
+<APICard name="hydrateLoaderData" type="function" signature="hydrateLoaderData(router: Router, data: Record<string, unknown>): void" description="Client: hydrate serialized loader data into the router so the initial render uses server-fetched data." />
+
+### Components
+
+<APICard name="RouterProvider" type="component" signature="<RouterProvider router={router}>...</RouterProvider>" description="Provide the router instance to the component tree via context." />
+
+<APICard name="RouterView" type="component" signature="<RouterView />" description="Render the matched route component for the current route. Nest inside layouts for nested routing." />
+
+<APICard name="RouterLink" type="component" signature='<RouterLink to="/path" activeClass="active" exactActiveClass="exact-active">...</RouterLink>' description="Navigation link that applies active classes and supports prefetching on hover/focus." />
+
+### Hooks
+
+<APICard name="useRouter" type="hook" signature="useRouter(): Router" description="Access the router instance from within the component tree." />
+
+<APICard name="useRoute" type="hook" signature="useRoute(): () => ResolvedRoute" description="Access the current resolved route as a reactive signal." />
+
+<APICard name="useLoaderData" type="hook" signature="useLoaderData<T>(): T" description="Read data returned by the current route's loader function." />
+
+### Context
+
+<APICard name="RouterContext" type="constant" signature="RouterContext: Context<Router>" description="The router context object for advanced use cases." />
+
+### Types
+
+<APICard name="Router" type="type" signature="interface Router" description="The router instance interface with push, replace, back, guards, and signals." />
+
+<APICard name="RouterOptions" type="type" signature="interface RouterOptions" description="Options for createRouter: routes, mode, scrollBehavior, and url (SSR)." />
+
+<APICard name="RouteRecord" type="type" signature="interface RouteRecord" description="Route record with path, component, name, meta, guards, loader, children, and redirect." />
+
+<APICard name="RouteComponent" type="type" signature="type RouteComponent = ComponentFn | LazyComponent" description="A route component: either a regular component function or a lazy-loaded component." />
+
+<APICard name="LazyComponent" type="type" signature="type LazyComponent" description="Lazy component wrapper returned by the lazy() helper." />
+
+<APICard name="ResolvedRoute" type="type" signature="interface ResolvedRoute" description="A resolved route with path, params, query, hash, matched records, and merged meta." />
+
+<APICard name="RouteMeta" type="type" signature="interface RouteMeta" description="Route metadata interface. Extendable via TypeScript module augmentation." />
+
+<APICard name="NavigationGuard" type="type" signature="type NavigationGuard = (to: ResolvedRoute, from: ResolvedRoute) => NavigationGuardResult | Promise<NavigationGuardResult>" description="Guard function called before navigation commits." />
+
+<APICard name="NavigationGuardResult" type="type" signature="type NavigationGuardResult = boolean | string | undefined" description="Guard return type: true/undefined to allow, false to cancel, string to redirect." />
+
+<APICard name="AfterEachHook" type="type" signature="type AfterEachHook = (to: ResolvedRoute, from: ResolvedRoute) => void" description="Hook function called after navigation commits. Cannot affect navigation." />
+
+<APICard name="LoaderContext" type="type" signature="interface LoaderContext { params: Record<string, string>; query: Record<string, string>; signal: AbortSignal }" description="Context passed to route loader functions." />
+
+<APICard name="RouteLoaderFn" type="type" signature="type RouteLoaderFn = (ctx: LoaderContext) => Promise<unknown>" description="Async loader function for fetching route data before navigation commits." />
+
+<APICard name="ScrollBehaviorFn" type="type" signature='type ScrollBehaviorFn = (to: ResolvedRoute, from: ResolvedRoute, savedPosition: number | null) => "top" | "restore" | "none" | number' description="Custom scroll behavior function for advanced scroll control." />
+
+<APICard name="ExtractParams" type="type" signature="type ExtractParams<T extends string>" description="Utility type that extracts typed param keys from a path pattern string." />
+
+<APICard name="RouterProviderProps" type="type" signature="interface RouterProviderProps" description="Props for the RouterProvider component." />
+
+<APICard name="RouterViewProps" type="type" signature="interface RouterViewProps" description="Props for the RouterView component." />
+
+<APICard name="RouterLinkProps" type="type" signature="interface RouterLinkProps" description="Props for the RouterLink component." />
