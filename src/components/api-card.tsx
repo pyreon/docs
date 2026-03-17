@@ -11,8 +11,7 @@ interface APICardProps {
 const typeLabels: Record<string, { label: string; color: string }> = {
   function: {
     label: 'fn',
-    color:
-      'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
   },
   component: {
     label: 'C',
@@ -31,18 +30,15 @@ const typeLabels: Record<string, { label: string; color: string }> = {
   },
   constant: {
     label: 'K',
-    color:
-      'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+    color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
   },
   property: {
     label: 'P',
-    color:
-      'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
+    color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
   },
   context: {
     label: 'Cx',
-    color:
-      'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
+    color: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
   },
 }
 
