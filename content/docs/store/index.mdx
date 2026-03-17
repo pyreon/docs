@@ -24,16 +24,15 @@ const useCounter = defineStore('counter', () => {
 
   const increment = () => count.update(n => n + 1)
   const decrement = () => count.update(n => n - 1)
-  const reset = () => count.set(0)
 
-  return { count, doubled, increment, decrement, reset }
+  return { count, doubled, increment, decrement }
 })
 
 // Use it anywhere:
-const { count, doubled, increment } = useCounter()
-increment()
-console.log(count())    // 1
-console.log(doubled())  // 2
+const { store, patch, reset } = useCounter()
+store.increment()
+console.log(store.count())    // 1
+console.log(store.doubled())  // 2
 ```
 
 ## Core Concepts
@@ -56,10 +55,9 @@ const useCounter = defineStore('counter', () => {
   // Actions — plain functions that mutate state
   const increment = () => count.update(n => n + 1)
   const decrement = () => count.update(n => n - 1)
-  const reset = () => count.set(0)
   const setTo = (value: number) => count.set(value)
 
-  return { count, doubled, isPositive, increment, decrement, reset, setTo }
+  return { count, doubled, isPositive, increment, decrement, setTo }
 })
 ```
 
@@ -71,9 +69,28 @@ const useB = defineStore('shared-id', () => ({ val: signal('second') }))
 
 const a = useA()
 const b = useB()
-console.log(a === b)        // true
-console.log(a.val())        // "first" — second setup never ran
+console.log(a === b)              // true
+console.log(a.store.val())        // "first" — second setup never ran
 ```
+
+### The StoreApi Pattern
+
+Every store hook returns a `StoreApi<T>` object that separates user state from framework methods:
+
+```ts
+const { store, id, state, patch, subscribe, onAction, reset, dispose } = useCounter()
+
+// User state is under `store`:
+store.count()        // read a signal
+store.increment()    // call an action
+
+// Framework methods are at the top level:
+patch({ count: 5 })  // batch-update signals
+subscribe(cb)        // listen to state changes
+reset()              // reset to initial values
+```
+
+This clear separation avoids naming collisions between your state and the framework API.
 
 ### Singleton Behavior
 
@@ -103,27 +120,27 @@ const useStore = defineStore('shared-state', () => {
 const a = useStore()
 const b = useStore()
 
-a.count.set(42)
-console.log(b.count()) // 42 — same signal instance
+a.store.count.set(42)
+console.log(b.store.count()) // 42 — same signal instance
 ```
 
 ### Using in Components
 
-Call the store hook inside a component's setup function. The returned signals integrate directly with Pyreon's reactive rendering:
+Call the store hook inside a component's setup function. Destructure `store` to access your signals and actions, and use the framework methods (`patch`, `reset`, etc.) as needed:
 
 ```tsx
 import { defineComponent } from '@pyreon/core'
 
 const Counter = defineComponent(() => {
-  const { count, doubled, increment, decrement, reset } = useCounter()
+  const { store, reset } = useCounter()
 
   return () => (
     <div>
-      <p>Count: {count()}</p>
-      <p>Doubled: {doubled()}</p>
+      <p>Count: {store.count()}</p>
+      <p>Doubled: {store.doubled()}</p>
       <div>
-        <button onClick={increment}>+</button>
-        <button onClick={decrement}>-</button>
+        <button onClick={store.increment}>+</button>
+        <button onClick={store.decrement}>-</button>
         <button onClick={reset}>Reset</button>
       </div>
     </div>
@@ -397,11 +414,11 @@ const useUser = defineStore('user', () => {
 })
 
 const useNotifications = defineStore('notifications', () => {
-  const { name } = useUser() // Use the user store
+  const { store: user } = useUser() // Use the user store
 
   const messages = signal<string[]>([])
 
-  const greeting = computed(() => `Hello, ${name()}! You have ${messages().length} messages.`)
+  const greeting = computed(() => `Hello, ${user.name()}! You have ${messages().length} messages.`)
 
   function addMessage(msg: string) {
     messages.set([...messages(), msg])
@@ -444,7 +461,7 @@ const useApi = defineStore('api', () => {
 
 // Domain layer: uses API store
 const useTodos = defineStore('todos', () => {
-  const { request } = useApi()
+  const { store: api } = useApi()
 
   const items = signal<{ id: number; text: string; done: boolean }[]>([])
   const loading = signal(false)
@@ -455,7 +472,7 @@ const useTodos = defineStore('todos', () => {
   async function fetchAll() {
     loading.set(true)
     try {
-      const data = await request<typeof items extends () => infer T ? T : never>('/todos')
+      const data = await api.request<typeof items extends () => infer T ? T : never>('/todos')
       items.set(data)
     } finally {
       loading.set(false)
@@ -463,7 +480,7 @@ const useTodos = defineStore('todos', () => {
   }
 
   async function add(text: string) {
-    const todo = await request<{ id: number; text: string; done: boolean }>('/todos', {
+    const todo = await api.request<{ id: number; text: string; done: boolean }>('/todos', {
       method: 'POST',
       body: JSON.stringify({ text }),
     })
@@ -473,7 +490,7 @@ const useTodos = defineStore('todos', () => {
   async function toggle(id: number) {
     const current = items().find(t => t.id === id)
     if (!current) return
-    await request(`/todos/${id}`, {
+    await api.request(`/todos/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ done: !current.done }),
     })
@@ -680,7 +697,7 @@ const useForm = defineStore('form', () => {
 
 ### Typing Store Return Values
 
-The store's return type is inferred automatically from the setup function:
+The store's return type is inferred automatically from the setup function. The hook returns a `StoreApi<T>`:
 
 ```ts
 const useCounter = defineStore('counter', () => {
@@ -690,12 +707,11 @@ const useCounter = defineStore('counter', () => {
   return { count, doubled, increment }
 })
 
-// Type is inferred as:
-// () => {
+// Type of useCounter() is StoreApi<{
 //   count: Signal<number>
 //   doubled: ComputedSignal<number>
 //   increment: () => void
-// }
+// }>
 ```
 
 ### Extracting Store Types
@@ -709,13 +725,17 @@ const useCounter = defineStore('counter', () => {
   return { count, increment }
 })
 
-// Extract the store type from the hook
-type CounterStore = ReturnType<typeof useCounter>
+// Extract the StoreApi type from the hook
+type CounterApi = ReturnType<typeof useCounter>
+// StoreApi<{ count: Signal<number>; increment: () => void }>
+
+// Extract just the user state type
+type CounterStore = CounterApi['store']
 // { count: Signal<number>; increment: () => void }
 
 // Use in function parameters
-function logCount(store: CounterStore) {
-  console.log(store.count())
+function logCount(api: CounterApi) {
+  console.log(api.store.count())
 }
 ```
 
@@ -808,58 +828,58 @@ function createField<T>(initial: T): FormField<T> {
 }
 ```
 
-## Enhanced Store API
+## StoreApi Methods
 
-Every store instance returned by `defineStore` is enhanced with `$`-prefixed methods for inspection, patching, subscriptions, and cleanup. These are added automatically — no extra setup needed.
+Every store hook returns a `StoreApi<T>` object with the user's state under `.store` and framework methods at the top level. These are added automatically -- no extra setup needed.
 
-### `$id`
+### `id`
 
 The store's unique identifier:
 
 ```ts
-const store = useCounter()
-console.log(store.$id) // "counter"
+const api = useCounter()
+console.log(api.id) // "counter"
 ```
 
-### `$state`
+### `state`
 
 A readonly snapshot of all signal values in the store:
 
 ```ts
-const store = useCounter()
-console.log(store.$state) // { count: 0 }
+const api = useCounter()
+console.log(api.state) // { count: 0 }
 
-store.increment()
-console.log(store.$state) // { count: 1 }
+api.store.increment()
+console.log(api.state) // { count: 1 }
 ```
 
-### `$patch`
+### `patch`
 
 Batch-update multiple signals in a single notification. Accepts either an object or a function:
 
 ```ts
-const store = useUser()
+const { patch } = useUser()
 
 // Object form — sets matching signal keys
-store.$patch({ firstName: "Alice", lastName: "Smith" })
+patch({ firstName: "Alice", lastName: "Smith" })
 
 // Function form — receives signal references for direct manipulation
-store.$patch((state) => {
-  state.firstName.set("Alice")
-  state.lastName.set("Smith")
+patch((signals) => {
+  signals.firstName.set("Alice")
+  signals.lastName.set("Smith")
 })
 ```
 
-Patch mutations are batched via `batch()` and emit a single `$subscribe` notification with `type: "patch"`.
+Patch mutations are batched via `batch()` and emit a single `subscribe` notification with `type: "patch"`.
 
-### `$subscribe`
+### `subscribe`
 
 Listen to all state changes in the store. The callback receives the mutation info and a snapshot of the current state:
 
 ```ts
-const store = useCounter()
+const { subscribe } = useCounter()
 
-const unsubscribe = store.$subscribe((mutation, state) => {
+const unsubscribe = subscribe((mutation, state) => {
   console.log(mutation.storeId)  // "counter"
   console.log(mutation.type)     // "direct" or "patch"
   console.log(mutation.events)   // [{ key: "count", oldValue: 0, newValue: 1 }]
@@ -867,20 +887,20 @@ const unsubscribe = store.$subscribe((mutation, state) => {
 })
 
 // Trigger immediately with current state:
-store.$subscribe(callback, { immediate: true })
+subscribe(callback, { immediate: true })
 
 // Stop listening:
 unsubscribe()
 ```
 
-### `$onAction`
+### `onAction`
 
 Intercept action calls with before/after/error hooks:
 
 ```ts
-const store = useCounter()
+const { onAction } = useCounter()
 
-const unsubscribe = store.$onAction((context) => {
+const unsubscribe = onAction((context) => {
   console.log(`Action "${context.name}" called with args:`, context.args)
 
   context.after((result) => {
@@ -893,56 +913,56 @@ const unsubscribe = store.$onAction((context) => {
 })
 ```
 
-### `$reset`
+### `reset`
 
 Reset all signals to their initial values (the values from when `setup()` first ran):
 
 ```ts
-const store = useCounter()
+const { store, reset } = useCounter()
 store.increment()
 store.increment()
 console.log(store.count()) // 2
 
-store.$reset()
+reset()
 console.log(store.count()) // 0
 ```
 
-### `$dispose`
+### `dispose`
 
-Tear down the store entirely — unsubscribes all signal listeners, clears subscribers and action listeners, and removes the store from the registry:
+Tear down the store entirely -- unsubscribes all signal listeners, clears subscribers and action listeners, and removes the store from the registry:
 
 ```ts
-const store = useCounter()
-store.$dispose()
+const { dispose } = useCounter()
+dispose()
 
 // Next call to useCounter() will re-run setup
 ```
 
 ## Plugins
 
-Register global plugins that run when any store is first created. Plugins receive the store instance and its ID:
+Register global plugins that run when any store is first created. Plugins receive the full `StoreApi`:
 
 ```ts
 import { addStorePlugin } from "@pyreon/store"
 
 // Logger plugin
-addStorePlugin(({ store, storeId }) => {
-  store.$subscribe((mutation, state) => {
-    console.log(`[${storeId}]`, mutation.type, mutation.events)
+addStorePlugin(({ store, id, subscribe }) => {
+  subscribe((mutation, state) => {
+    console.log(`[${id}]`, mutation.type, mutation.events)
   })
 })
 
 // Persistence plugin
-addStorePlugin(({ store, storeId }) => {
+addStorePlugin(({ id, patch, subscribe }) => {
   // Restore from localStorage
-  const saved = localStorage.getItem(`store:${storeId}`)
+  const saved = localStorage.getItem(`store:${id}`)
   if (saved) {
-    store.$patch(JSON.parse(saved))
+    patch(JSON.parse(saved))
   }
 
   // Persist on change
-  store.$subscribe((_mutation, state) => {
-    localStorage.setItem(`store:${storeId}`, JSON.stringify(state))
+  subscribe((_mutation, state) => {
+    localStorage.setItem(`store:${id}`, JSON.stringify(state))
   })
 })
 ```
@@ -950,7 +970,7 @@ addStorePlugin(({ store, storeId }) => {
 ### StorePlugin type
 
 ```ts
-type StorePlugin = (context: { store: any; storeId: string }) => void
+type StorePlugin = (api: StoreApi<Record<string, unknown>>) => void
 ```
 
 ## Resetting Stores
@@ -965,8 +985,8 @@ import { resetStore } from '@pyreon/store'
 resetStore('counter')
 
 // Next call to useCounter() will re-run setup, starting from count = 0
-const { count } = useCounter()
-console.log(count()) // 0
+const { store } = useCounter()
+console.log(store.count()) // 0
 ```
 
 Resetting a non-existent ID is a safe no-op:
@@ -1001,29 +1021,29 @@ afterEach(() => {
 
 describe('useCounter', () => {
   test('starts at zero', () => {
-    const { count } = useCounter()
-    expect(count()).toBe(0)
+    const { store } = useCounter()
+    expect(store.count()).toBe(0)
   })
 
   test('increments', () => {
-    const { count, increment } = useCounter()
-    increment()
-    increment()
-    expect(count()).toBe(2)
+    const { store } = useCounter()
+    store.increment()
+    store.increment()
+    expect(store.count()).toBe(2)
   })
 
   test('computed values update', () => {
-    const { count, doubled } = useCounter()
-    count.set(5)
-    expect(doubled()).toBe(10)
+    const { store } = useCounter()
+    store.count.set(5)
+    expect(store.doubled()).toBe(10)
   })
 
   test('reset produces fresh state', () => {
-    const { count } = useCounter()
-    count.set(99)
+    const { store } = useCounter()
+    store.count.set(99)
     resetStore('counter')
-    const { count: freshCount } = useCounter()
-    expect(freshCount()).toBe(0)
+    const { store: fresh } = useCounter()
+    expect(fresh.count()).toBe(0)
   })
 })
 ```
@@ -1050,23 +1070,23 @@ describe('useProducts', () => {
       new Response(JSON.stringify({ items: mockProducts }), { status: 200 })
     )
 
-    const { items, loading, fetchProducts } = useProducts()
+    const { store } = useProducts()
 
-    expect(loading()).toBe(false)
-    const promise = fetchProducts()
-    expect(loading()).toBe(true)
+    expect(store.loading()).toBe(false)
+    const promise = store.fetchProducts()
+    expect(store.loading()).toBe(true)
 
     await promise
-    expect(loading()).toBe(false)
-    expect(items()).toEqual(mockProducts)
+    expect(store.loading()).toBe(false)
+    expect(store.items()).toEqual(mockProducts)
   })
 
   test('fetchProducts handles errors', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'))
 
-    const { error, fetchProducts } = useProducts()
-    await fetchProducts()
-    expect(error()).toBe('Network error')
+    const { store } = useProducts()
+    await store.fetchProducts()
+    expect(store.error()).toBe('Network error')
   })
 })
 ```
@@ -1076,22 +1096,22 @@ describe('useProducts', () => {
 ```ts
 describe('useNotifications (depends on useUser)', () => {
   test('greeting includes user name', () => {
-    const { name } = useUser()
-    name.set('Bob')
+    const { store: user } = useUser()
+    user.name.set('Bob')
 
-    const { greeting } = useNotifications()
-    expect(greeting()).toContain('Bob')
+    const { store: notifications } = useNotifications()
+    expect(notifications.greeting()).toContain('Bob')
   })
 
   test('greeting updates when user name changes', () => {
-    const { name } = useUser()
-    const { greeting } = useNotifications()
+    const { store: user } = useUser()
+    const { store: notifications } = useNotifications()
 
-    name.set('Alice')
-    expect(greeting()).toContain('Alice')
+    user.name.set('Alice')
+    expect(notifications.greeting()).toContain('Alice')
 
-    name.set('Charlie')
-    expect(greeting()).toContain('Charlie')
+    user.name.set('Charlie')
+    expect(notifications.greeting()).toContain('Charlie')
   })
 })
 ```
@@ -1116,13 +1136,13 @@ describe('isolated registry tests', () => {
     const useStore = defineStore('isolated', () => ({ val: signal(0) }))
 
     setStoreRegistryProvider(() => registryA)
-    useStore().val.set(10)
+    useStore().store.val.set(10)
 
     setStoreRegistryProvider(() => registryB)
-    expect(useStore().val()).toBe(0) // Fresh state in registry B
+    expect(useStore().store.val()).toBe(0) // Fresh state in registry B
 
     setStoreRegistryProvider(() => registryA)
-    expect(useStore().val()).toBe(10) // Preserved state in registry A
+    expect(useStore().store.val()).toBe(10) // Preserved state in registry A
   })
 })
 ```
@@ -1226,30 +1246,16 @@ const useCounter = defineStore('counter', () => {
 Build a simple inspector that snapshots all exposed state:
 
 ```ts
-function inspectStore<T extends Record<string, unknown>>(store: T): Record<string, unknown> {
-  const snapshot: Record<string, unknown> = {}
-  for (const [key, val] of Object.entries(store)) {
-    if (typeof val === 'function' && val.length === 0) {
-      try {
-        snapshot[key] = val() // Read signal or computed
-      } catch {
-        snapshot[key] = '[action]'
-      }
-    } else {
-      snapshot[key] = '[action]'
-    }
-  }
-  return snapshot
+function inspectStore<T extends Record<string, unknown>>(api: StoreApi<T>): Record<string, unknown> {
+  return api.state
 }
 
 // Usage:
-const store = useCounter()
-console.table(inspectStore(store))
-// | key       | value    |
-// |-----------|----------|
-// | count     | 0        |
-// | doubled   | 0        |
-// | increment | [action] |
+const api = useCounter()
+console.table(inspectStore(api))
+// | key   | value |
+// |-------|-------|
+// | count | 0     |
 ```
 
 ## API Reference
@@ -1260,7 +1266,23 @@ Define a store with a unique ID and a setup function.
 
 - **`id`** (`string`) -- Unique identifier for the store. Must be unique across the application.
 - **`setup`** (`() => T`) -- Factory function that returns the store's public API. Runs once per store lifetime (until reset). `T` must extend `Record<string, unknown>`.
-- **Returns** `() => T` -- A hook function that returns the singleton store state.
+- **Returns** `() => StoreApi<T>` -- A hook function that returns the `StoreApi` wrapping the singleton store state.
+
+### `StoreApi<T>`
+
+The structured result returned by every store hook.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `store` | `T` | The user-defined store state, computeds, and actions |
+| `id` | `string` | The store's unique identifier string |
+| `state` | `Record<string, unknown>` | Readonly snapshot of all signal values |
+| `patch(obj)` | `(partial: Record<string, unknown>) => void` | Batch-set signals from an object |
+| `patch(fn)` | `(fn: (signals) => void) => void` | Batch-set signals via function receiving signal refs |
+| `subscribe(cb, opts?)` | `(cb, opts?) => () => void` | Listen to state changes, returns unsubscribe |
+| `onAction(cb)` | `(cb) => () => void` | Intercept action calls with after/error hooks, returns unsubscribe |
+| `reset()` | `() => void` | Reset all signals to initial values |
+| `dispose()` | `() => void` | Tear down the store and remove from registry |
 
 ### `setStoreRegistryProvider(fn)`
 
@@ -1282,22 +1304,7 @@ Destroy all stores in the current registry. Useful for test teardown, HMR, and S
 
 Register a global plugin that runs when any store is first created.
 
-- **`plugin`** (`StorePlugin`) -- Function receiving `{ store, storeId }`.
-
-### Enhanced Store Instance Methods
-
-Every store returned by `defineStore` includes these `$`-prefixed methods:
-
-| Method | Description |
-|--------|-------------|
-| `$id` | The store's unique identifier string |
-| `$state` | Readonly snapshot of all signal values |
-| `$patch(obj)` | Batch-set signals from an object |
-| `$patch(fn)` | Batch-set signals via function receiving signal refs |
-| `$subscribe(cb, opts?)` | Listen to state changes, returns unsubscribe |
-| `$onAction(cb)` | Intercept action calls with after/error hooks, returns unsubscribe |
-| `$reset()` | Reset all signals to initial values |
-| `$dispose()` | Tear down the store and remove from registry |
+- **`plugin`** (`StorePlugin`) -- Function receiving the full `StoreApi`.
 
 ### Re-exported from `@pyreon/reactivity`
 

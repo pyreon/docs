@@ -240,7 +240,7 @@ const schema = z.discriminatedUnion("type", [
 
 1. Calls `schema.safeParseAsync(values)`
 2. If `result.success` is `true`, returns `{}`
-3. If `result.success` is `false`, maps each `ZodIssue` to a `ValidationIssue` by joining `issue.path` with `.` (e.g., `["address", "city"]` becomes `"address.city"`)
+3. If `result.success` is `false`, maps each `ZodIssue` to a `ValidationIssue` by converting each `PropertyKey` in `issue.path` to a string and joining with `.` (e.g., `["address", "city"]` becomes `"address.city"`). Uses `PropertyKey[]` for path arrays to support both Zod v3 and v4.
 4. Passes the `ValidationIssue[]` array to `issuesToRecord` to produce the flat field-error record
 5. When multiple issues exist for the same path, the first error message wins
 
@@ -254,7 +254,7 @@ const schema = z.discriminatedUnion("type", [
 
 ## Valibot Adapter
 
-Valibot uses standalone functions rather than methods on schema objects. Because of this, the Valibot adapters require you to pass the `safeParse` or `safeParseAsync` function explicitly.
+Valibot uses standalone functions rather than methods on schema objects. Because of this, the Valibot adapters require you to pass the `safeParse` or `safeParseAsync` function explicitly. The `safeParseFn` parameter is typed as `Function` (a generic callable) to avoid hard-coupling to any specific Valibot version.
 
 ### valibotSchema -- Form-Level Validation
 
@@ -380,7 +380,7 @@ const schema = v.object({
 
 ## ArkType Adapter
 
-ArkType uses a function-call syntax for validation. The schema is called as a function, and if validation fails, it returns an `ArkErrors` array (which has a `summary` property to distinguish it from regular arrays).
+ArkType uses a function-call syntax for validation. The adapter accepts any callable (`ArkTypeCallable`) -- no ArkType import is required. When called, if validation fails, it returns an `ArkErrors` array (which has a `summary` property to distinguish it from regular arrays). Error paths use `PropertyKey[]` and are converted to dot-separated strings.
 
 ### arktypeSchema -- Form-Level Validation
 
@@ -469,7 +469,7 @@ const schema = type({
 1. Calls `schema(values)` -- ArkType schemas are callable functions
 2. Checks if the result is an `ArkErrors` array (detected by the presence of a `summary` property on the array)
 3. If not an error, returns `{}`
-4. If an error, maps each `ArkError` to a `ValidationIssue` by joining `error.path` with `.`
+4. If an error, maps each `ArkError` to a `ValidationIssue` by converting each `PropertyKey` in `error.path` to a string and joining with `.`
 5. Passes the issues to `issuesToRecord`
 
 ### ArkType is Synchronous
@@ -989,8 +989,8 @@ export function myLibraryField<T>(schema: MyLibraryFieldSchema<T>): ValidateFn<T
 
 | Function | Signature | Description |
 |---|---|---|
-| `zodSchema(schema)` | `<TValues>(schema: ZodSchema<TValues>) => SchemaValidateFn<TValues>` | Create a form-level validator from a Zod object schema. Uses `safeParseAsync`. |
-| `zodField(schema)` | `<T>(schema: ZodSchema<T>) => ValidateFn<T>` | Create a per-field validator from a Zod schema. Returns first error message. |
+| `zodSchema(schema)` | `<TValues>(schema: ZodSchema<TValues>) => SchemaValidateFn<TValues>` | Create a form-level validator from a Zod object schema. Uses `safeParseAsync`. Duck-typed to work with Zod v3 and v4. |
+| `zodField(schema)` | `<T>(schema: ZodSchema<T>) => ValidateFn<T>` | Create a per-field validator from a Zod schema. Returns first error message. Duck-typed to work with Zod v3 and v4. |
 
 ### Valibot
 
@@ -1003,8 +1003,8 @@ export function myLibraryField<T>(schema: MyLibraryFieldSchema<T>): ValidateFn<T
 
 | Function | Signature | Description |
 |---|---|---|
-| `arktypeSchema(schema)` | `<TValues>(schema: ArkTypeSchema<TValues>) => SchemaValidateFn<TValues>` | Create a form-level validator from an ArkType schema. Synchronous. |
-| `arktypeField(schema)` | `<T>(schema: ArkTypeSchema<T>) => ValidateFn<T>` | Create a per-field validator from an ArkType schema. Returns first error message. |
+| `arktypeSchema(schema)` | `<TValues>(schema: ArkTypeCallable) => SchemaValidateFn<TValues>` | Create a form-level validator from an ArkType schema. Synchronous. Accepts any callable. |
+| `arktypeField(schema)` | `<T>(schema: ArkTypeCallable) => ValidateFn<T>` | Create a per-field validator from an ArkType schema. Returns first error message. Accepts any callable. |
 
 ### Utility
 

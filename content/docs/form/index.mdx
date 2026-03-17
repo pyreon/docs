@@ -35,6 +35,16 @@ const form = useForm({
 
 `useForm` must be called inside a Pyreon component (it uses `onUnmount` for debounce timer cleanup).
 
+### The Accessor Type
+
+Throughout the form API, you will see `Accessor<T>` used for read-only reactive values. This is a union type that covers both `Signal<T>` and `Computed<T>`:
+
+```ts
+type Accessor<T> = Signal<T> | Computed<T>
+```
+
+For example, `isValid` and `isDirty` on the form state are `Accessor<boolean>` -- they are computed values that you read by calling them (`form.isValid()`), but you cannot write to them directly.
+
 ## useForm Options
 
 The `useForm` function accepts a `UseFormOptions<TValues>` object:
@@ -223,16 +233,24 @@ Pass `{ type: 'checkbox' }` to `register()` to get a `checked` signal that track
 <input type="checkbox" {...form.register('remember', { type: 'checkbox' })} />
 ```
 
+### Number Inputs
+
+Pass `{ type: 'number' }` to `register()` to use `valueAsNumber` on the input event, so the field value stays a `number` rather than a string:
+
+```tsx
+<input type="number" {...form.register('age', { type: 'number' })} />
+```
+
 ### How register() Works Internally
 
 `register()` returns a `FieldRegisterProps<T>` object:
 
 ```ts
 interface FieldRegisterProps<T> {
-  value: Signal<T>        // the field's value signal (bind to input value)
+  value: Signal<T>             // the field's value signal (bind to input value)
   onInput: (e: Event) => void  // updates field value and dirty state
-  onBlur: () => void      // marks field as touched, triggers blur validation
-  checked?: Signal<boolean>    // only present for checkbox type
+  onBlur: () => void           // marks field as touched, triggers blur validation
+  checked?: Accessor<boolean>  // only present for checkbox type
 }
 ```
 
@@ -506,8 +524,8 @@ const form = useForm({
 | --- | --- | --- |
 | `isSubmitting` | `Signal<boolean>` | `true` while `onSubmit` is running |
 | `isValidating` | `Signal<boolean>` | `true` while async validation is running |
-| `isValid` | `Computed<boolean>` | `true` when no field has an error |
-| `isDirty` | `Computed<boolean>` | `true` when any field differs from initial |
+| `isValid` | `Accessor<boolean>` | `true` when no field has an error (computed -- read-only) |
+| `isDirty` | `Accessor<boolean>` | `true` when any field value differs from initial (computed -- read-only) |
 | `submitCount` | `Signal<number>` | Number of times submit has been attempted |
 | `submitError` | `Signal<unknown>` | Error thrown by `onSubmit`, if any |
 
@@ -1266,8 +1284,8 @@ Create a signal-based form.
 <APICard name="fields" type="property" signature="fields: { [K in keyof TValues]: FieldState<TValues[K]> }" description="Individual field states with fine-grained reactive signals." />
 <APICard name="isSubmitting" type="property" signature="isSubmitting: Signal<boolean>" description="Whether the onSubmit handler is currently running." />
 <APICard name="isValidating" type="property" signature="isValidating: Signal<boolean>" description="Whether async validation is currently running." />
-<APICard name="isValid" type="property" signature="isValid: Computed<boolean>" description="Whether all fields are currently valid (no errors)." />
-<APICard name="isDirty" type="property" signature="isDirty: Computed<boolean>" description="Whether any field differs from its initial value." />
+<APICard name="isValid" type="property" signature="isValid: Accessor<boolean>" description="Whether all fields are currently valid (no errors). Read-only computed." />
+<APICard name="isDirty" type="property" signature="isDirty: Accessor<boolean>" description="Whether any field differs from its initial value. Read-only computed." />
 <APICard name="submitCount" type="property" signature="submitCount: Signal<number>" description="Number of times submit has been attempted." />
 <APICard name="submitError" type="property" signature="submitError: Signal<unknown>" description="Error thrown by onSubmit, if any." />
 <APICard name="values" type="function" signature="values(): TValues" description="Get all current form values as a plain object." />
@@ -1277,7 +1295,7 @@ Create a signal-based form.
 <APICard name="setErrors" type="function" signature="setErrors(errors: Partial<Record<keyof TValues, string | undefined>>): void" description="Set multiple field errors at once." />
 <APICard name="clearErrors" type="function" signature="clearErrors(): void" description="Clear all field errors at once." />
 <APICard name="resetField" type="function" signature="resetField(field: keyof TValues): void" description="Reset a single field to its initial value without affecting other fields." />
-<APICard name="register" type="function" signature="register(field: keyof TValues, opts?: { type: 'checkbox' }): FieldRegisterProps" description="Get input binding props for a field. Returns value, onInput, onBlur, and optionally checked for checkboxes." />
+<APICard name="register" type="function" signature="register(field: keyof TValues, opts?: { type: 'checkbox' | 'number' }): FieldRegisterProps" description="Get input binding props for a field. Returns value, onInput, onBlur. Pass { type: 'checkbox' } for a checked accessor, or { type: 'number' } to use valueAsNumber." />
 <APICard name="handleSubmit" type="function" signature="handleSubmit(event?: Event): Promise<void>" description="Submit the form. Prevents default, validates all fields, and calls onSubmit if valid." />
 <APICard name="reset" type="function" signature="reset(): void" description="Reset the entire form to initial values, clearing all errors, touched, dirty states, submit count, and submit error." />
 <APICard name="validate" type="function" signature="validate(): Promise<boolean>" description="Manually validate all fields. Returns whether the form is valid. Bypasses debounce." />
@@ -1333,6 +1351,7 @@ function useFormContext<TValues>(): FormState<TValues>
 
 ## Type Exports
 
+<APICard name="Accessor" type="type" signature="Accessor<T> = Signal<T> | Computed<T>" description="A reactive value that can be read by calling it. Both Signal and Computed satisfy this interface." />
 <APICard name="FormState" type="type" signature="FormState<TValues>" description="Full form state object returned by useForm." />
 <APICard name="UseFormOptions" type="type" signature="UseFormOptions<TValues>" description="Options for useForm." />
 <APICard name="FieldState" type="type" signature="FieldState<T>" description="Per-field reactive state with value, error, touched, and dirty signals." />
