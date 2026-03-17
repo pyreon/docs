@@ -35,9 +35,7 @@ export function PropTable({ title, props }: PropTableProps): ReactNode {
             <tr
               key={prop.name}
               className={
-                i < props.length - 1
-                  ? 'border-b border-fd-border'
-                  : undefined
+                i < props.length - 1 ? 'border-b border-fd-border' : undefined
               }
             >
               <td className="px-4 py-2.5">
