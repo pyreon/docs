@@ -18,7 +18,7 @@ description: Full-stack meta-framework for Pyreon applications.
 Scaffold a new project with the `create` command:
 
 ```bash
-bun create zero my-app
+bun create @pyreon/zero my-app
 cd my-app
 bun install
 bun run dev
@@ -489,6 +489,108 @@ import { varyEncoding } from "@pyreon/zero"
 varyEncoding()
 ```
 
+## Server Actions
+
+Define server-side mutations that are callable from the client. Actions receive parsed JSON or FormData and are mounted at `/_zero/actions/*`.
+
+```ts title="src/features/posts.ts"
+import { defineAction } from "@pyreon/zero/actions"
+
+export const createPost = defineAction(async (ctx) => {
+  const { title, body } = ctx.json as { title: string; body: string }
+  const post = await db.posts.create({ title, body })
+  return { success: true, id: post.id }
+})
+
+export const deletePost = defineAction(async (ctx) => {
+  const { id } = ctx.json as { id: number }
+  await db.posts.delete(id)
+  return { success: true }
+})
+```
+
+Call actions from components — they're just async functions:
+
+```tsx
+import { createPost } from "../features/posts"
+
+function NewPostForm() {
+  const handleSubmit = async (e: Event) => {
+    e.preventDefault()
+    const result = await createPost({ title: "Hello", body: "World" })
+    if (result.success) window.location.href = `/posts/${result.id}`
+  }
+
+  return <form onSubmit={handleSubmit}>...</form>
+}
+```
+
+### ActionContext
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `request` | `Request` | The original HTTP request |
+| `json` | `unknown` | Parsed JSON body (for `application/json`) |
+| `formData` | `FormData \| null` | Parsed form data (for `multipart/form-data`) |
+| `headers` | `Headers` | Request headers |
+
+### Action Middleware
+
+Mount the action handler in your server entry:
+
+```ts title="src/entry-server.ts"
+import { createActionMiddleware } from "@pyreon/zero/actions"
+
+export default createServer({
+  routes,
+  middleware: [
+    createActionMiddleware(), // handles /_zero/actions/* requests
+    securityHeaders(),
+    cacheMiddleware(),
+  ],
+})
+```
+
+## Per-Route Middleware
+
+Route files can export a `middleware` function that runs on the server before rendering. Middleware uses `@pyreon/server`'s signature:
+
+```tsx title="src/routes/(admin)/dashboard.tsx"
+import type { MiddlewareContext } from "@pyreon/server"
+
+// Runs on every request to /dashboard
+export const middleware = (ctx: MiddlewareContext) => {
+  const token = ctx.req.headers.get("authorization")
+  if (!token) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+  // Return void to continue to rendering
+}
+```
+
+Wire route middleware in your server entry:
+
+```ts title="src/entry-server.ts"
+import { routes } from "virtual:zero/routes"
+import { routeMiddleware } from "virtual:zero/route-middleware"
+import { createServer } from "@pyreon/zero"
+
+export default createServer({
+  routes,
+  routeMiddleware, // per-route middleware dispatched before global middleware
+  middleware: [securityHeaders(), cacheMiddleware()],
+})
+```
+
+Add the virtual module type to your `env.d.ts`:
+
+```ts title="env.d.ts"
+declare module "virtual:zero/route-middleware" {
+  import type { RouteMiddlewareEntry } from "@pyreon/zero"
+  export const routeMiddleware: RouteMiddlewareEntry[]
+}
+```
+
 ## SEO
 
 ### Sitemap Generation
@@ -763,6 +865,7 @@ import { createServer } from "@pyreon/zero"
 
 const handler = createServer({
   routes,
+  routeMiddleware,             // Per-route middleware from virtual:zero/route-middleware
   config: { mode: "ssr" },
   middleware: [securityHeaders(), cacheMiddleware()],
   template: indexHtml,         // HTML template string
@@ -822,6 +925,8 @@ The client automatically detects whether to hydrate (if SSR-rendered HTML is pre
 | `nodeAdapter` | `() => Adapter` | Node.js adapter |
 | `bunAdapter` | `() => Adapter` | Bun adapter |
 | `staticAdapter` | `() => Adapter` | Static output adapter |
+| `defineAction` | `(handler: ActionHandler) => Action` | Define a server action |
+| `createActionMiddleware` | `() => Middleware` | Mount action handler at `/_zero/actions/*` |
 
 ## Subpath Exports
 
@@ -838,6 +943,7 @@ The client automatically detects whether to hydrate (if SSR-rendered HTML is pre
 | `@pyreon/zero/seo` | `seoPlugin`, `seoMiddleware`, `generateSitemap`, `generateRobots`, `jsonLd` |
 | `@pyreon/zero/theme` | Theme signals and `ThemeToggle` component |
 | `@pyreon/zero/image-plugin` | `imagePlugin` Vite plugin |
+| `@pyreon/zero/actions` | `defineAction`, `createActionMiddleware` |
 
 ## Type Exports
 
@@ -865,3 +971,7 @@ The client automatically detects whether to hydrate (if SSR-rendered HTML is pre
 | `FormatSource` | Per-format srcset in a `ProcessedImage` |
 | `ImageFormat` | `"webp" \| "avif" \| "jpeg" \| "png"` |
 | `JsonLdType` | JSON-LD structured data type |
+| `ActionContext` | Context passed to server action handlers |
+| `Action` | Client-callable action returned by `defineAction` |
+| `ActionHandler` | Server action handler function type |
+| `RouteMiddlewareEntry` | Maps URL pattern to route middleware |
