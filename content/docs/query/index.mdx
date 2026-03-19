@@ -1294,6 +1294,86 @@ Type re-exports include `QueryKey`, `QueryFilters`, `MutationFilters`, `Dehydrat
 | `QueryErrorResetBoundary` | Error reset boundary component |
 | `useQueryErrorResetBoundary` | Access error reset function |
 
+## WebSocket Subscriptions — `useSubscription()`
+
+Connect a WebSocket to the query cache for realtime data updates. Auto-reconnects with exponential backoff.
+
+```tsx
+import { useSubscription } from '@pyreon/query'
+
+function OrdersDashboard() {
+  const sub = useSubscription({
+    url: 'wss://api.example.com/ws',
+    onMessage: (event, queryClient) => {
+      const data = JSON.parse(event.data)
+      if (data.type === 'order-updated') {
+        queryClient.invalidateQueries({ queryKey: ['orders'] })
+      }
+      if (data.type === 'order-created') {
+        queryClient.setQueryData(['orders', data.order.id], data.order)
+      }
+    },
+  })
+
+  return (
+    <div>
+      <p>Status: {() => sub.status()}</p>
+      {/* sub.status(): 'connecting' | 'connected' | 'disconnected' | 'error' */}
+    </div>
+  )
+}
+```
+
+### Subscription Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `url` | `string \| () => string` | required | WebSocket URL (can be reactive) |
+| `protocols` | `string \| string[]` | — | WebSocket sub-protocols |
+| `onMessage` | `(event, queryClient) => void` | required | Message handler with query client access |
+| `onOpen` | `(event) => void` | — | Connection opened callback |
+| `onClose` | `(event) => void` | — | Connection closed callback |
+| `onError` | `(event) => void` | — | Error callback |
+| `reconnect` | `boolean` | `true` | Auto-reconnect on disconnect |
+| `reconnectDelay` | `number` | `1000` | Initial reconnect delay (ms), doubles each retry |
+| `maxReconnectAttempts` | `number` | `10` | Max reconnect attempts (0 = unlimited) |
+| `enabled` | `boolean \| () => boolean` | `true` | Enable/disable the connection |
+
+### Return Value
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `status` | `Signal<SubscriptionStatus>` | Current connection status |
+| `send` | `(data) => void` | Send data through the WebSocket |
+| `close` | `() => void` | Close the connection |
+| `reconnect` | `() => void` | Manually reconnect |
+
+### Reactive URL
+
+```tsx
+const channel = signal('orders')
+
+useSubscription({
+  url: () => `wss://api.example.com/ws/${channel()}`,
+  onMessage: (event, qc) => { /* ... */ },
+})
+
+// Changing channel automatically reconnects to the new URL
+channel.set('inventory')
+```
+
+### Conditional Connection
+
+```tsx
+const isAuthenticated = computed(() => !!token())
+
+useSubscription({
+  url: 'wss://api.example.com/ws',
+  enabled: () => isAuthenticated(),
+  onMessage: (event, qc) => { /* ... */ },
+})
+```
+
 ## Type Exports
 
 | Type | Description |
@@ -1307,3 +1387,6 @@ Type re-exports include `QueryKey`, `QueryFilters`, `MutationFilters`, `Dehydrat
 | `QuerySuspenseProps` | Props for `QuerySuspense` |
 | `QueryClientProviderProps` | Props for `QueryClientProvider` |
 | `QueryErrorResetBoundaryProps` | Props for `QueryErrorResetBoundary` |
+| `UseSubscriptionOptions` | Options for `useSubscription` |
+| `UseSubscriptionResult` | Return type of `useSubscription` |
+| `SubscriptionStatus` | `'connecting' \| 'connected' \| 'disconnected' \| 'error'` |
