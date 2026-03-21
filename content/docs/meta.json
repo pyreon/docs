@@ -15,6 +15,7 @@
     "head",
     "server",
     "vite-plugin",
+    "mcp",
     "---Compatibility Layers---",
     "react-compat",
     "preact-compat",
