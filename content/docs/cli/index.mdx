@@ -1,0 +1,188 @@
+---
+title: "@pyreon/cli"
+description: Developer tools for Pyreon — project doctor, context generation, and React pattern detection.
+---
+
+`@pyreon/cli` provides command-line tools for Pyreon projects. The main command is `pyreon doctor`, which scans your codebase for React patterns and common mistakes, with auto-fix support.
+
+<PackageBadge name="@pyreon/cli" href="/docs/cli" />
+
+## Installation
+
+```package-install
+@pyreon/cli
+```
+
+## Commands
+
+### `pyreon doctor`
+
+Scans your project for React patterns, bad imports, and common Pyreon mistakes. Useful as a safety net when AI tools generate React code instead of Pyreon code.
+
+```bash
+pyreon doctor              # human-readable output
+pyreon doctor --fix        # auto-fix safe transforms
+pyreon doctor --json       # structured JSON output
+pyreon doctor --ci         # exit code 1 on any error (for CI pipelines)
+```
+
+#### What it detects
+
+| Pattern | Code | Suggestion |
+|---------|------|------------|
+| React imports | `import React from "react"` | `import { h } from "@pyreon/core"` |
+| useState | `const [x, setX] = useState(0)` | `const x = signal(0)` |
+| useEffect | `useEffect(() => { ... }, [dep])` | `effect(() => { ... })` |
+| useMemo | `useMemo(() => val, [dep])` | `computed(() => val)` |
+| useCallback | `useCallback(fn, [dep])` | Use the function directly |
+| className | `<div className="box">` | `<div class="box">` |
+| htmlFor | `<label htmlFor="email">` | `<label for="email">` |
+
+#### Auto-fix mode
+
+With `--fix`, the doctor auto-applies safe transforms:
+
+- `className="..."` becomes `class="..."`
+- `htmlFor="..."` becomes `for="..."`
+
+React hook and import migrations are flagged but not auto-fixed — they require understanding your component's logic.
+
+```bash
+pyreon doctor --fix
+```
+
+#### JSON output
+
+The `--json` flag outputs structured data for AI agent consumption:
+
+```json
+{
+  "passed": false,
+  "files": [
+    {
+      "file": "src/App.tsx",
+      "diagnostics": [
+        {
+          "code": "react-import",
+          "line": 1,
+          "message": "React import detected",
+          "current": "import React from \"react\"",
+          "suggested": "import { h } from \"@pyreon/core\"",
+          "fixable": false
+        }
+      ],
+      "fixed": false
+    }
+  ],
+  "summary": {
+    "filesScanned": 12,
+    "filesWithIssues": 1,
+    "totalErrors": 1,
+    "totalFixable": 0,
+    "totalFixed": 0
+  }
+}
+```
+
+#### CI integration
+
+Add to your CI pipeline to block React patterns from merging:
+
+```yaml title=".github/workflows/ci.yml"
+- name: Pyreon Doctor
+  run: bunx @pyreon/cli doctor --ci
+```
+
+The `--ci` flag exits with code 1 if any issues are found, failing the pipeline.
+
+#### File scanning
+
+The doctor scans `.tsx`, `.jsx`, `.ts`, and `.js` files recursively. It skips:
+
+- `node_modules/`
+- `dist/`
+- `.git/`
+- Non-source files (`.json`, `.css`, `.html`, etc.)
+
+---
+
+### `pyreon context`
+
+Generates a `.pyreon/context.json` file describing your project's routes, components, and islands. This file is consumed by AI tools for project-aware code generation.
+
+```bash
+pyreon context                    # writes to .pyreon/context.json
+pyreon context --out ./ai.json    # custom output path
+```
+
+#### Output format
+
+```json
+{
+  "framework": "pyreon",
+  "version": "0.5.0",
+  "generatedAt": "2026-03-19T12:00:00.000Z",
+  "routes": [
+    {
+      "path": "/users/:id",
+      "name": "user",
+      "params": ["id"],
+      "hasLoader": true,
+      "hasGuard": false
+    }
+  ],
+  "components": [
+    {
+      "name": "UserCard",
+      "file": "src/components/UserCard.tsx",
+      "props": ["user", "showAvatar"],
+      "hasSignals": true,
+      "signalNames": ["isExpanded"]
+    }
+  ],
+  "islands": [
+    {
+      "name": "SearchBar",
+      "file": "src/islands/SearchBar.tsx",
+      "hydrate": "idle"
+    }
+  ]
+}
+```
+
+---
+
+## Package.json scripts
+
+```json
+{
+  "scripts": {
+    "doctor": "pyreon doctor",
+    "doctor:fix": "pyreon doctor --fix",
+    "doctor:ci": "pyreon doctor --ci",
+    "context": "pyreon context"
+  }
+}
+```
+
+---
+
+## API Reference
+
+The CLI also exports its functions for programmatic use:
+
+| Export | Description |
+|--------|-------------|
+| `doctor(options)` | Run the doctor check, returns error count |
+| `generateContext(options)` | Generate project context, returns `ContextResult` |
+
+### DoctorOptions
+
+```ts
+interface DoctorOptions {
+  fix: boolean    // Auto-fix safe transforms
+  json: boolean   // Output structured JSON
+  ci: boolean     // Exit with code 1 on errors
+  cwd: string     // Working directory to scan
+}
+```

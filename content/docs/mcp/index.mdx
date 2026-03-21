@@ -1,0 +1,275 @@
+---
+title: "@pyreon/mcp"
+description: Model Context Protocol server for AI-assisted Pyreon development — API lookup, code validation, React migration, and project scanning.
+---
+
+`@pyreon/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives AI coding assistants direct access to Pyreon's API, project structure, and migration tools. When connected, AI tools generate idiomatic Pyreon code instead of falling back on React patterns.
+
+<PackageBadge name="@pyreon/mcp" href="/docs/mcp" />
+
+## Installation
+
+```package-install
+@pyreon/mcp
+```
+
+## Quick Start
+
+Run the MCP server via stdio (the standard transport for IDE integrations):
+
+```bash
+bunx @pyreon/mcp
+```
+
+## IDE Integration
+
+### Claude Code
+
+Add to `.mcp.json` in your project root:
+
+```json title=".mcp.json"
+{
+  "mcpServers": {
+    "pyreon": {
+      "command": "bunx",
+      "args": ["@pyreon/mcp"]
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to `.cursor/mcp.json`:
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "pyreon": {
+      "command": "bunx",
+      "args": ["@pyreon/mcp"]
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to `.windsurf/mcp.json` (same format as Cursor).
+
+---
+
+## Tools
+
+The MCP server exposes six tools that AI assistants can call:
+
+### `get_api`
+
+Look up any Pyreon API by package and symbol name. Returns the signature, usage example, notes, and common mistakes.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `package` | `string` | Package name without `@pyreon/` prefix (e.g. `"reactivity"`) |
+| `symbol` | `string` | Export name (e.g. `"signal"`, `"createRouter"`) |
+
+**Example call:**
+
+```
+get_api({ package: "reactivity", symbol: "signal" })
+```
+
+**Response:**
+
+```markdown
+## @pyreon/reactivity — signal
+
+**Signature:**
+signal<T>(initialValue: T): Signal<T>
+
+**Usage:**
+const count = signal(0)
+count()        // read: 0
+count.set(1)   // write
+count.update(n => n + 1)  // update
+
+**Common mistakes:**
+- Using .value instead of calling the signal as a function
+- Forgetting to call signal() when reading in JSX: use {count()} not {count}
+```
+
+If the symbol is not found, the tool suggests similar symbols from the API reference.
+
+---
+
+### `validate`
+
+Check a code snippet for React anti-patterns and Pyreon mistakes.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `code` | `string` | Source code to validate |
+| `filename` | `string?` | Optional filename for better diagnostics |
+
+**Example call:**
+
+```
+validate({
+  code: "import { useState } from 'react'\nconst [x, setX] = useState(0)",
+  filename: "Counter.tsx"
+})
+```
+
+**Response:**
+
+```markdown
+Found 2 issues:
+
+1. **react-import** (line 1)
+   React import detected
+   Current: `import { useState } from 'react'`
+   Fix: `import { signal } from "@pyreon/reactivity"`
+   Auto-fixable: no
+
+2. **react-hook-useState** (line 2)
+   useState hook detected
+   Current: `const [x, setX] = useState(0)`
+   Fix: `const x = signal(0)`
+   Auto-fixable: no
+```
+
+---
+
+### `migrate_react`
+
+Convert React code to idiomatic Pyreon. Applies safe auto-fixes and flags manual changes.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `code` | `string` | React source code to migrate |
+| `filename` | `string?` | Optional filename |
+
+**Example call:**
+
+```
+migrate_react({
+  code: "<div className=\"card\" />"
+})
+```
+
+**Response:**
+
+```markdown
+## Migrated Code
+
+<div class="card" />
+
+**Changes applied (1):**
+- Line 1: className → class
+```
+
+---
+
+### `diagnose`
+
+Parse an error message and return a structured Pyreon-specific diagnosis with fix instructions.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `error` | `string` | Error message or stack trace |
+
+**Example call:**
+
+```
+diagnose({
+  error: "TypeError: count is not a function"
+})
+```
+
+**Response:**
+
+```markdown
+**Cause:** Signal accessed without calling it — signals are functions.
+
+**Fix:** Call the signal to read its value: `count()` instead of `count`.
+
+**Code:**
+// Wrong:
+<div>{count}</div>
+
+// Right:
+<div>{count()}</div>
+```
+
+---
+
+### `get_routes`
+
+List all routes detected in the current project. Scans for `createRouter([...])` and `const routes = [...]` patterns.
+
+**Parameters:** None.
+
+**Response:**
+
+```markdown
+**Routes (3):**
+
+  / (name: "home")
+  /users/:id (params: id, loader)
+  /admin (guard)
+```
+
+---
+
+### `get_components`
+
+List all components with their props and signal usage.
+
+**Parameters:** None.
+
+**Response:**
+
+```markdown
+**Components (4):**
+
+  App — src/App.tsx
+  UserCard — src/components/UserCard.tsx
+    props: { user, showAvatar }, signals: [isExpanded]
+  Counter — src/Counter.tsx
+    signals: [count, label]
+  Header — src/Header.tsx
+```
+
+---
+
+## How It Works
+
+When the AI sends a tool call, the MCP server:
+
+1. **`get_api`** — Looks up the symbol in a built-in API reference covering all `@pyreon/*` packages.
+2. **`validate` / `migrate_react`** — Uses `@pyreon/compiler`'s `detectReactPatterns()` and `migrateReactCode()` functions (same AST-based analysis as the compiler).
+3. **`diagnose`** — Uses `@pyreon/compiler`'s `diagnoseError()` to match error patterns against known Pyreon issues.
+4. **`get_routes` / `get_components`** — Scans the project directory for route definitions and component declarations using regex-based static analysis. Results are cached and refreshed when the working directory changes.
+
+---
+
+## API Reference
+
+The MCP server covers these Pyreon packages in its built-in reference:
+
+| Package | Symbols |
+|---------|---------|
+| `@pyreon/reactivity` | `signal`, `computed`, `effect`, `batch`, `untracked`, `createSelector`, `createStore` |
+| `@pyreon/core` | `h`, `Fragment`, `createContext`, `useContext`, `onMount`, `onUnmount`, `lazy`, `Dynamic`, `For`, `Show`, `Switch/Match`, `Suspense`, `ErrorBoundary` |
+| `@pyreon/runtime-dom` | `mount`, `hydrateRoot`, `Transition`, `TransitionGroup`, `KeepAlive` |
+| `@pyreon/router` | `createRouter`, `RouterProvider`, `RouterView`, `RouterLink`, `useRouter`, `useRoute` |
+| `@pyreon/head` | `useHead`, `HeadProvider` |
+| `@pyreon/server` | `createHandler`, `prerender`, `island`, `startClient`, `hydrateIslands` |
+| `@pyreon/vite-plugin` | `pyreon` (default export) |
