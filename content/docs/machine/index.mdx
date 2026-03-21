@@ -1,0 +1,409 @@
+---
+title: Machine
+description: Reactive state machines for Pyreon — constrained signals with type-safe transitions
+---
+
+# @pyreon/machine
+
+Reactive state machines for Pyreon. A machine is a **constrained signal** — it can only hold specific values and can only transition between them via specific events. Everything else (data, side effects, async) uses existing Pyreon primitives.
+
+## Installation
+
+```bash
+bun add @pyreon/machine
+```
+
+Peer dependencies: `@pyreon/reactivity`
+
+## Quick Start
+
+```tsx
+import { createMachine } from '@pyreon/machine'
+
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: { on: { FETCH: 'loading' } },
+    loading: { on: { SUCCESS: 'done', ERROR: 'error' } },
+    done: {},
+    error: { on: { RETRY: 'loading' } },
+  },
+})
+
+machine()              // 'idle' — reads like a signal
+machine.send('FETCH')
+machine()              // 'loading'
+
+// Reactive in JSX
+{() => machine.matches('loading') && <Spinner />}
+```
+
+## Why State Machines?
+
+Replace impossible state combinations with explicit, valid transitions:
+
+```tsx
+// ❌ Nested booleans — 16 possible combinations, most invalid
+const isOpen = signal(false)
+const isLoading = signal(false)
+const isError = signal(false)
+const isSuccess = signal(false)
+
+// ✅ State machine — only valid states exist
+const dialog = createMachine({
+  initial: 'closed',
+  states: {
+    closed: { on: { OPEN: 'confirming' } },
+    confirming: { on: { CONFIRM: 'loading', CANCEL: 'closed' } },
+    loading: { on: { SUCCESS: 'success', ERROR: 'error' } },
+    success: { on: { CLOSE: 'closed' } },
+    error: { on: { RETRY: 'loading', CLOSE: 'closed' } },
+  },
+})
+```
+
+## Reading State
+
+The machine instance is callable — it reads like any Pyreon signal:
+
+```tsx
+machine()                    // current state — reactive
+machine.matches('loading')   // boolean — reactive
+machine.matches('done', 'error')  // true if in any of these
+```
+
+### In JSX
+
+```tsx
+function FetchWidget() {
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: { on: { FETCH: 'loading' } },
+      loading: { on: { SUCCESS: 'done', ERROR: 'error' } },
+      done: { on: { REFETCH: 'loading' } },
+      error: { on: { RETRY: 'loading' } },
+    },
+  })
+
+  return () => {
+    if (machine.matches('idle'))
+      return <button type="button" onClick={() => machine.send('FETCH')}>Load</button>
+    if (machine.matches('loading'))
+      return <Spinner />
+    if (machine.matches('error'))
+      return <button type="button" onClick={() => machine.send('RETRY')}>Retry</button>
+    if (machine.matches('done'))
+      return <DataView />
+    return null
+  }
+}
+```
+
+### In Effects and Computeds
+
+```tsx
+const isLoading = computed(() => machine() === 'loading')
+
+effect(() => {
+  if (machine.matches('done')) showNotification('Complete!')
+})
+```
+
+## Sending Events
+
+```tsx
+machine.send('FETCH')              // simple event
+machine.send('SELECT', { id: 42 }) // with payload
+```
+
+Invalid events are silently ignored — the machine stays in its current state.
+
+## Checking Available Events
+
+```tsx
+machine.can('FETCH')     // true if event would trigger a transition
+machine.nextEvents()     // ['FETCH', 'RESET'] — available from current state
+```
+
+Useful for disabling buttons:
+
+```tsx
+<button
+  type="button"
+  onClick={() => player.send('PLAY')}
+  disabled={!player.can('PLAY')}
+>
+  Play
+</button>
+```
+
+## Guards
+
+Conditional transitions — the guard must return `true` for the transition to proceed:
+
+```tsx
+const form = createMachine({
+  initial: 'editing',
+  states: {
+    editing: {
+      on: {
+        SUBMIT: { target: 'submitting', guard: () => isValid() },
+      },
+    },
+    submitting: { on: { SUCCESS: 'done', ERROR: 'editing' } },
+    done: {},
+  },
+})
+
+// SUBMIT only transitions if isValid() returns true
+form.send('SUBMIT')
+```
+
+Guards also receive the event payload:
+
+```tsx
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        PROCEED: { target: 'active', guard: (payload) => payload?.confirmed === true },
+      },
+    },
+    active: {},
+  },
+})
+
+machine.send('PROCEED', { confirmed: false }) // blocked by guard
+machine.send('PROCEED', { confirmed: true })  // transitions
+```
+
+## Side Effects — `onEnter`
+
+React to state changes with `onEnter`. It fires once each time the machine enters a state:
+
+```tsx
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: { on: { FETCH: 'loading' } },
+    loading: { on: { SUCCESS: 'done', ERROR: 'error' } },
+    done: { on: { REFETCH: 'loading' } },
+    error: { on: { RETRY: 'loading' } },
+  },
+})
+
+const data = signal(null)
+
+machine.onEnter('loading', async () => {
+  try {
+    data.set(await fetchData())
+    machine.send('SUCCESS')
+  } catch {
+    machine.send('ERROR')
+  }
+})
+```
+
+### Event Payload in onEnter
+
+```tsx
+const selectedId = signal<string | null>(null)
+
+machine.onEnter('selected', (event) => {
+  selectedId.set(event.payload.id)
+})
+
+machine.send('SELECT', { id: 'item-42' })
+```
+
+## Transition Listener
+
+Track all transitions — useful for analytics, logging, debugging:
+
+```tsx
+machine.onTransition((from, to, event) => {
+  analytics.track('wizard_step', { from, to, event: event.type })
+})
+```
+
+## Reset
+
+```tsx
+machine.reset()  // back to initial state
+```
+
+## Data Alongside Machines
+
+Machines manage **transitions**. Signals manage **data**. They compose naturally:
+
+```tsx
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: { on: { FETCH: 'loading' } },
+    loading: { on: { SUCCESS: 'done', ERROR: 'error' } },
+    done: {},
+    error: {},
+  },
+})
+
+// Data lives in signals — not inside the machine
+const data = signal<User[] | null>(null)
+const error = signal<Error | null>(null)
+const retryCount = signal(0)
+
+machine.onEnter('loading', async () => {
+  retryCount.update(n => n + 1)
+  try {
+    data.set(await fetchUsers())
+    machine.send('SUCCESS')
+  } catch (e) {
+    error.set(e as Error)
+    machine.send('ERROR')
+  }
+})
+```
+
+This is intentional — the machine doesn't reinvent `signal()`. Use Pyreon's existing primitives for state.
+
+## Reusable Definitions
+
+Pass the same config object to create independent instances:
+
+```tsx
+const wizardDef = {
+  initial: 'step1' as const,
+  states: {
+    step1: { on: { NEXT: 'step2' as const } },
+    step2: { on: { NEXT: 'step3' as const, BACK: 'step1' as const } },
+    step3: { on: { SUBMIT: 'done' as const, BACK: 'step2' as const } },
+    done: {},
+  },
+}
+
+// Each component gets its own independent instance
+function WizardA() {
+  const machine = createMachine(wizardDef)
+  // ...
+}
+```
+
+## Cleanup
+
+```tsx
+// Remove all listeners
+machine.dispose()
+
+// Individual unsubscribe
+const unsub = machine.onEnter('loading', handler)
+unsub() // remove this listener
+```
+
+## Common Patterns
+
+### Multi-Step Wizard
+
+```tsx
+const wizard = createMachine({
+  initial: 'step1',
+  states: {
+    step1: { on: { NEXT: 'step2' } },
+    step2: { on: { NEXT: 'step3', BACK: 'step1' } },
+    step3: { on: { SUBMIT: 'submitting', BACK: 'step2' } },
+    submitting: { on: { SUCCESS: 'done', ERROR: 'step3' } },
+    done: {},
+  },
+})
+```
+
+### Toggle
+
+```tsx
+const toggle = createMachine({
+  initial: 'off',
+  states: {
+    off: { on: { TOGGLE: 'on' } },
+    on: { on: { TOGGLE: 'off' } },
+  },
+})
+```
+
+### Media Player
+
+```tsx
+const player = createMachine({
+  initial: 'stopped',
+  states: {
+    stopped: { on: { PLAY: 'playing' } },
+    playing: { on: { PAUSE: 'paused', STOP: 'stopped' } },
+    paused: { on: { PLAY: 'playing', STOP: 'stopped' } },
+  },
+})
+```
+
+### Auth Flow
+
+```tsx
+const auth = createMachine({
+  initial: 'unauthenticated',
+  states: {
+    unauthenticated: { on: { LOGIN: 'authenticating' } },
+    authenticating: { on: { SUCCESS: 'authenticated', ERROR: 'unauthenticated' } },
+    authenticated: { on: { LOGOUT: 'unauthenticated' } },
+  },
+})
+```
+
+## Type Safety
+
+States and events are inferred from the definition — no manual type annotations needed:
+
+```tsx
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: { on: { FETCH: 'loading' } },
+    loading: { on: { SUCCESS: 'done' } },
+    done: {},
+  },
+})
+
+machine()              // 'idle' | 'loading' | 'done'
+machine.send('FETCH')  // ✓
+machine.send('FLY')    // TS error — not a valid event
+machine.matches('idle') // ✓
+machine.matches('x')    // TS error — not a valid state
+```
+
+## API Reference
+
+| API | Description |
+|---|---|
+| `createMachine({ initial, states })` | Create a reactive state machine |
+| `machine()` | Read current state — reactive |
+| `machine.send(event, payload?)` | Trigger a transition |
+| `machine.matches(...states)` | Check if in any of the given states — reactive |
+| `machine.can(event)` | Check if event is valid from current state — reactive |
+| `machine.nextEvents()` | Available events from current state — reactive |
+| `machine.reset()` | Return to initial state |
+| `machine.onEnter(state, callback)` | Fire callback when entering a state |
+| `machine.onTransition(callback)` | Fire on any transition |
+| `machine.dispose()` | Remove all listeners |
+
+## Type Exports
+
+```tsx
+import type {
+  Machine,            // The machine instance type
+  MachineConfig,      // { initial, states } config
+  MachineEvent,       // { type, payload? }
+  StateConfig,        // Per-state { on: { ... } }
+  TransitionConfig,   // Target string or { target, guard }
+  EnterCallback,      // onEnter callback type
+  TransitionCallback, // onTransition callback type
+  InferStates,        // Extract state union from config
+  InferEvents,        // Extract event union from config
+} from '@pyreon/machine'
+```
