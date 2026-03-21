@@ -489,6 +489,124 @@ import { varyEncoding } from "@pyreon/zero"
 varyEncoding()
 ```
 
+## API Routes
+
+API routes are `.ts` files in `src/routes/api/` that export HTTP method handlers. They run on the server and return `Response` objects directly.
+
+```ts title="src/routes/api/posts.ts"
+import type { ApiContext } from "@pyreon/zero"
+
+export function GET(ctx: ApiContext) {
+  return Response.json([
+    { id: 1, title: "Hello World" },
+  ])
+}
+
+export async function POST(ctx: ApiContext) {
+  const body = await ctx.request.json()
+  return Response.json({ id: 2, ...body }, { status: 201 })
+}
+```
+
+### File path conventions
+
+| File | URL |
+|------|-----|
+| `src/routes/api/posts.ts` | `/api/posts` |
+| `src/routes/api/posts/index.ts` | `/api/posts` |
+| `src/routes/api/posts/[id].ts` | `/api/posts/:id` |
+| `src/routes/api/[...path].ts` | `/api/*` (catch-all) |
+
+### ApiContext
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `request` | `Request` | The incoming HTTP request |
+| `url` | `URL` | Parsed URL |
+| `path` | `string` | URL path |
+| `params` | `Record<string, string>` | Dynamic route parameters |
+| `headers` | `Headers` | Request headers |
+
+### Wiring API routes
+
+```ts title="src/entry-server.ts"
+import { apiRoutes } from "virtual:zero/api-routes"
+
+export default createServer({
+  routes,
+  apiRoutes, // API routes run before SSR — matched by URL + HTTP method
+  middleware: [...],
+})
+```
+
+Unsupported methods automatically return `405 Method Not Allowed` with an `Allow` header.
+
+### CORS Middleware
+
+```ts
+import { corsMiddleware } from "@pyreon/zero/cors"
+
+// Allow any origin
+corsMiddleware()
+
+// Specific origins with credentials
+corsMiddleware({
+  origin: ["https://app.com", "https://admin.com"],
+  credentials: true,
+  maxAge: 86400,
+})
+
+// Dynamic origin matching
+corsMiddleware({
+  origin: (o) => o.endsWith(".example.com"),
+})
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `origin` | `string \| string[] \| (origin: string) => boolean` | `"*"` | Allowed origins |
+| `methods` | `string[]` | `["GET","POST","PUT","PATCH","DELETE","OPTIONS"]` | Allowed methods |
+| `allowedHeaders` | `string[]` | `["Content-Type","Authorization"]` | Allowed request headers |
+| `exposedHeaders` | `string[]` | `[]` | Headers exposed to client |
+| `credentials` | `boolean` | `false` | Allow credentials |
+| `maxAge` | `number` | `86400` | Preflight cache (seconds) |
+
+### Rate Limiting
+
+```ts
+import { rateLimitMiddleware } from "@pyreon/zero/rate-limit"
+
+// 100 requests per minute (default)
+rateLimitMiddleware()
+
+// Strict API rate limiting
+rateLimitMiddleware({
+  max: 20,
+  window: 60,
+  include: ["/api/*"],
+})
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `max` | `number` | `100` | Max requests per window |
+| `window` | `number` | `60` | Window in seconds |
+| `keyFn` | `(ctx) => string` | IP-based | Client identifier function |
+| `include` | `string[]` | all paths | URL patterns to rate limit |
+| `exclude` | `string[]` | `[]` | URL patterns to skip |
+
+Sets `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers. Returns `429 Too Many Requests` with `Retry-After` when exceeded.
+
+### Compression
+
+```ts
+import { compressionMiddleware } from "@pyreon/zero/compression"
+
+compressionMiddleware({ threshold: 1024, encodings: ["gzip"] })
+```
+
+Compresses text-based responses (HTML, JSON, JS, CSS, XML, SVG) using the native `CompressionStream` API. Skips binary content and responses below the threshold.
+
 ## Server Actions
 
 Define server-side mutations that are callable from the client. Actions receive parsed JSON or FormData and are mounted at `/_zero/actions/*`.
@@ -888,6 +1006,60 @@ startClient({
 
 The client automatically detects whether to hydrate (if SSR-rendered HTML is present) or mount fresh (SPA mode).
 
+## Testing Utilities
+
+Test helpers for middleware and API routes, imported from `@pyreon/zero/testing`.
+
+### Testing Middleware
+
+```ts
+import { testMiddleware } from "@pyreon/zero/testing"
+import { corsMiddleware } from "@pyreon/zero/cors"
+
+const { response, headers } = await testMiddleware(
+  corsMiddleware({ origin: "*" }),
+  "/api/posts"
+)
+expect(headers.get("Access-Control-Allow-Origin")).toBe("*")
+```
+
+### Testing API Routes
+
+```ts
+import { createTestApiServer } from "@pyreon/zero/testing"
+
+const server = createTestApiServer([
+  { pattern: "/api/posts", module: { GET: () => Response.json([]) } },
+])
+
+const res = await server.request("/api/posts")
+expect(res.status).toBe(200)
+
+const res2 = await server.request("/api/posts", {
+  method: "POST",
+  body: { title: "Hello" },
+})
+expect(res2.status).toBe(201)
+```
+
+### Mock Handlers
+
+```ts
+import { createMockHandler } from "@pyreon/zero/testing"
+
+const handler = createMockHandler({ status: 200, body: { ok: true } })
+// ... use in API route module
+expect(handler.calls).toHaveLength(1)
+expect(handler.calls[0].params).toEqual({ id: "123" })
+```
+
+| Export | Description |
+|--------|-------------|
+| `createTestContext(path, options)` | Create mock `MiddlewareContext` |
+| `testMiddleware(mw, path, options)` | Run middleware, return response + headers |
+| `createTestApiServer(routes)` | Test API routes via `server.request()` |
+| `createMockHandler(config)` | Mock handler that records calls |
+
 ## Exports Summary
 
 | Export | Signature | Description |
@@ -927,6 +1099,10 @@ The client automatically detects whether to hydrate (if SSR-rendered HTML is pre
 | `staticAdapter` | `() => Adapter` | Static output adapter |
 | `defineAction` | `(handler: ActionHandler) => Action` | Define a server action |
 | `createActionMiddleware` | `() => Middleware` | Mount action handler at `/_zero/actions/*` |
+| `createApiMiddleware` | `(routes: ApiRouteEntry[]) => Middleware` | Mount API route handler |
+| `corsMiddleware` | `(config?: CorsConfig) => Middleware` | CORS middleware |
+| `rateLimitMiddleware` | `(config?: RateLimitConfig) => Middleware` | Rate limiting middleware |
+| `compressionMiddleware` | `(config?: CompressionConfig) => Middleware` | Compression middleware |
 
 ## Subpath Exports
 
@@ -944,6 +1120,11 @@ The client automatically detects whether to hydrate (if SSR-rendered HTML is pre
 | `@pyreon/zero/theme` | Theme signals and `ThemeToggle` component |
 | `@pyreon/zero/image-plugin` | `imagePlugin` Vite plugin |
 | `@pyreon/zero/actions` | `defineAction`, `createActionMiddleware` |
+| `@pyreon/zero/api-routes` | API route utilities and `createApiMiddleware` |
+| `@pyreon/zero/cors` | `corsMiddleware` |
+| `@pyreon/zero/rate-limit` | `rateLimitMiddleware` |
+| `@pyreon/zero/compression` | `compressionMiddleware`, `compressResponse` |
+| `@pyreon/zero/testing` | Test helpers for middleware and API routes |
 
 ## Type Exports
 
@@ -975,3 +1156,10 @@ The client automatically detects whether to hydrate (if SSR-rendered HTML is pre
 | `Action` | Client-callable action returned by `defineAction` |
 | `ActionHandler` | Server action handler function type |
 | `RouteMiddlewareEntry` | Maps URL pattern to route middleware |
+| `ApiContext` | Context passed to API route handlers |
+| `ApiRouteEntry` | Maps URL pattern to API route module |
+| `ApiRouteModule` | API route module with HTTP method handlers |
+| `HttpMethod` | `"GET" \| "POST" \| "PUT" \| "PATCH" \| "DELETE" \| "HEAD" \| "OPTIONS"` |
+| `CorsConfig` | Configuration for `corsMiddleware` |
+| `RateLimitConfig` | Configuration for `rateLimitMiddleware` |
+| `CompressionConfig` | Configuration for `compressionMiddleware` |
