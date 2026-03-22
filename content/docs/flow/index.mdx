@@ -1,0 +1,480 @@
+---
+title: Flow
+description: Reactive flow diagrams for Pyreon — signal-native nodes, edges, pan/zoom, auto-layout, no D3
+---
+
+# @pyreon/flow
+
+Reactive flow diagrams for Pyreon. Signal-native nodes, edges, pan/zoom, auto-layout via elkjs. No D3 dependency — ~50KB instead of ~1.2MB. Per-node signal reactivity gives O(1) updates instead of O(n) array diffing.
+
+## Installation
+
+```bash
+bun add @pyreon/flow
+```
+
+Peer dependencies: `@pyreon/core`, `@pyreon/reactivity`
+
+## Quick Start
+
+```tsx
+import { createFlow, Flow, Background, MiniMap, Controls } from '@pyreon/flow'
+
+const flow = createFlow({
+  nodes: [
+    { id: '1', position: { x: 0, y: 0 }, data: { label: 'Start' } },
+    { id: '2', position: { x: 200, y: 100 }, data: { label: 'Process' } },
+    { id: '3', position: { x: 400, y: 0 }, data: { label: 'End' } },
+  ],
+  edges: [
+    { source: '1', target: '2' },
+    { source: '2', target: '3' },
+  ],
+})
+
+function WorkflowBuilder() {
+  return (
+    <Flow instance={flow}>
+      <Background variant="dots" />
+      <MiniMap />
+      <Controls />
+    </Flow>
+  )
+}
+```
+
+No callbacks. No `applyNodeChanges`. The flow instance manages everything.
+
+## Core Concepts
+
+### createFlow
+
+All state lives in signals. Read them reactively in effects, computeds, and JSX.
+
+```tsx
+const flow = createFlow({
+  nodes: [...],
+  edges: [...],
+  defaultEdgeType: 'bezier',    // 'bezier' | 'smoothstep' | 'straight' | 'step'
+  snapToGrid: true,
+  snapGrid: 15,
+  minZoom: 0.1,
+  maxZoom: 4,
+  fitView: true,                // fit all nodes on initial render
+})
+
+flow.nodes()       // Signal<FlowNode[]>
+flow.edges()       // Signal<FlowEdge[]>
+flow.viewport()    // Signal<{ x, y, zoom }>
+flow.zoom()        // Computed<number>
+```
+
+### Nodes
+
+```tsx
+// Add
+flow.addNode({ id: '4', position: { x: 300, y: 200 }, data: { label: 'New' } })
+
+// Update
+flow.updateNode('4', { data: { label: 'Updated' } })
+flow.updateNodePosition('4', { x: 350, y: 250 })
+
+// Remove (also removes connected edges)
+flow.removeNode('4')
+
+// Query
+flow.getNode('4')           // FlowNode | undefined
+flow.findNodes(n => n.type === 'process')
+flow.searchNodes('fetch')   // case-insensitive label search
+```
+
+### Edges
+
+```tsx
+// Add (auto-generates ID)
+flow.addEdge({ source: '1', target: '2' })
+flow.addEdge({ source: '1', target: '2', type: 'smoothstep', label: 'yes' })
+
+// Remove
+flow.removeEdge('e-1-2')
+
+// Reconnect
+flow.reconnectEdge('e-1-2', { target: '3' })
+
+// Waypoints (bend points)
+flow.addEdgeWaypoint('e-1-2', { x: 100, y: 50 })
+flow.updateEdgeWaypoint('e-1-2', 0, { x: 120, y: 60 })
+flow.removeEdgeWaypoint('e-1-2', 0)
+```
+
+### Selection
+
+```tsx
+flow.selectNode('1')            // replace selection
+flow.selectNode('2', true)      // additive (shift+click)
+flow.deselectNode('1')
+flow.selectEdge('e-1-2')
+flow.selectAll()
+flow.clearSelection()
+flow.deleteSelected()           // removes selected nodes + connected edges
+
+flow.selectedNodes()            // Computed<string[]>
+flow.selectedEdges()            // Computed<string[]>
+```
+
+### Viewport
+
+```tsx
+flow.zoomIn()
+flow.zoomOut()
+flow.zoomTo(1.5)
+flow.fitView()                  // fit all nodes
+flow.fitView(['1', '2'])        // fit specific nodes
+flow.panTo({ x: 100, y: 200 })
+flow.focusNode('3')             // animate to a specific node
+flow.animateViewport({ x: 0, y: 0, zoom: 1 }, 300)  // smooth animation
+flow.isNodeVisible('1')         // check if in viewport
+```
+
+## Custom Node Types
+
+```tsx
+import { Handle, Position } from '@pyreon/flow'
+
+function ApiNode({ id, data, selected, dragging }: NodeComponentProps) {
+  return (
+    <div style={`padding: 12px; background: ${selected ? '#dbeafe' : 'white'}; border: 2px solid ${selected ? '#3b82f6' : '#ddd'}; border-radius: 8px;`}>
+      <Handle type="target" position={Position.Left} />
+      <div style="font-weight: bold;">{data.method}</div>
+      <div style="font-size: 12px; color: #666;">{data.url}</div>
+      <Handle type="source" position={Position.Right} />
+    </div>
+  )
+}
+
+// Register
+<Flow instance={flow} nodeTypes={{ api: ApiNode }}>
+  ...
+</Flow>
+
+// Use
+flow.addNode({ id: '5', type: 'api', position: { x: 0, y: 0 }, data: { method: 'GET', url: '/users' } })
+```
+
+## Custom Edge Types
+
+```tsx
+<Flow
+  instance={flow}
+  edgeTypes={{
+    custom: ({ edge, sourceX, sourceY, targetX, targetY, selected }) => (
+      <path
+        d={`M${sourceX},${sourceY} L${targetX},${targetY}`}
+        stroke={selected ? 'blue' : 'red'}
+        stroke-width="3"
+        stroke-dasharray="5,5"
+        fill="none"
+      />
+    ),
+  }}
+>
+  ...
+</Flow>
+```
+
+## Connection Rules
+
+Declarative — define which node types can connect to which:
+
+```tsx
+const flow = createFlow({
+  nodes: [...],
+  edges: [...],
+  connectionRules: {
+    input: { outputs: ['process'] },
+    process: { outputs: ['process', 'output'] },
+    output: { outputs: [] },
+  },
+})
+
+// Invalid connections are silently rejected
+flow.isValidConnection({ source: '1', target: '2' })  // boolean
+```
+
+## Auto-Layout
+
+Powered by elkjs (lazy-loaded — zero cost until called):
+
+```tsx
+// Apply layout
+await flow.layout('layered', {
+  direction: 'RIGHT',
+  nodeSpacing: 50,
+  layerSpacing: 100,
+})
+
+// Algorithms: 'layered' | 'force' | 'stress' | 'tree' | 'radial' | 'box' | 'rectpacking'
+
+// Animated transition (default) — nodes smoothly move to new positions
+await flow.layout('layered', { animate: true, animationDuration: 300 })
+
+// Instant (no animation)
+await flow.layout('layered', { animate: false })
+```
+
+## Components
+
+### Background
+
+```tsx
+<Background variant="dots" gap={20} size={1} color="#ddd" />
+<Background variant="lines" />
+<Background variant="cross" />
+```
+
+### MiniMap
+
+Shows all nodes with viewport rectangle. Click to navigate.
+
+```tsx
+<MiniMap
+  nodeColor={(n) => n.type === 'error' ? 'red' : '#ddd'}
+  width={200}
+  height={150}
+/>
+```
+
+### Controls
+
+Zoom in/out, fit view with SVG icons and zoom percentage.
+
+```tsx
+<Controls position="bottom-left" showFitView showLock />
+```
+
+### NodeResizer
+
+Drag handles on corners (and optionally edges) to resize nodes. Uses pointer capture — no event leaks.
+
+```tsx
+function ResizableNode({ id, data, selected }: NodeComponentProps) {
+  return (
+    <div style="min-width: 100px; min-height: 50px; position: relative;">
+      {data.label}
+      <NodeResizer nodeId={id} instance={flow} minWidth={80} minHeight={40} />
+    </div>
+  )
+}
+```
+
+### NodeToolbar
+
+Floating toolbar that appears when a node is selected.
+
+```tsx
+function EditableNode({ id, data, selected }: NodeComponentProps) {
+  return (
+    <div>
+      {data.label}
+      <NodeToolbar selected={selected}>
+        <button type="button" onClick={() => duplicate(id)}>Copy</button>
+        <button type="button" onClick={() => flow.removeNode(id)}>Delete</button>
+      </NodeToolbar>
+    </div>
+  )
+}
+```
+
+### Panel
+
+Positioned overlay for custom content.
+
+```tsx
+<Panel position="top-right">
+  <input placeholder="Search nodes..." onInput={(e) => {
+    const results = flow.searchNodes(e.target.value)
+    if (results[0]) flow.focusNode(results[0].id)
+  }} />
+</Panel>
+```
+
+### Handle
+
+Connection point on nodes.
+
+```tsx
+<Handle type="source" position={Position.Right} />
+<Handle type="target" position={Position.Left} id="input-1" />
+```
+
+## Keyboard Shortcuts
+
+Built-in when the Flow component is focused:
+
+| Shortcut | Action |
+|---|---|
+| `Delete` / `Backspace` | Delete selected nodes/edges |
+| `Escape` | Clear selection |
+| `Cmd/Ctrl + A` | Select all |
+| `Cmd/Ctrl + C` | Copy selected |
+| `Cmd/Ctrl + V` | Paste |
+| `Cmd/Ctrl + Z` | Undo |
+| `Cmd/Ctrl + Shift + Z` | Redo |
+
+## Copy / Paste
+
+```tsx
+flow.copySelected()              // copies selected nodes + internal edges
+flow.paste()                     // paste with offset, new IDs
+flow.paste({ x: 100, y: 50 })   // custom offset
+```
+
+## Undo / Redo
+
+```tsx
+flow.pushHistory()    // save current state
+flow.undo()           // restore previous
+flow.redo()           // restore next
+
+// History is auto-saved before drag and delete operations
+```
+
+## Advanced Features
+
+### Helper Lines (Snap Guides)
+
+Automatic alignment guides appear when dragging nodes near other nodes' edges or centers.
+
+### Multi-Node Drag
+
+Select multiple nodes (shift+click or rubber band), then drag — all move together with snap guides on the primary node.
+
+### Touch Support
+
+Pinch-to-zoom and two-finger pan on touch devices.
+
+### Collision Detection
+
+```tsx
+flow.getOverlappingNodes('1')     // nodes that overlap with node '1'
+flow.resolveCollisions('1')       // push overlapping nodes apart
+```
+
+### Proximity Connect
+
+```tsx
+const connection = flow.getProximityConnection('1', 50)
+// Returns Connection | null — nearest unconnected node within threshold
+```
+
+### Node Extent (Drag Boundaries)
+
+```tsx
+flow.setNodeExtent([[0, 0], [1000, 800]])  // constrain all nodes
+flow.setNodeExtent(null)                    // remove constraint
+```
+
+### Sub-Flows / Groups
+
+```tsx
+flow.addNode({ id: 'group', position: { x: 0, y: 0 }, group: true, data: { label: 'API Layer' } })
+flow.addNode({ id: 'child', position: { x: 10, y: 10 }, parentId: 'group', data: { label: 'GET /users' } })
+
+flow.getChildNodes('group')           // child nodes
+flow.getAbsolutePosition('child')     // { x: 10, y: 10 } + parent offset
+```
+
+### Graph Queries
+
+```tsx
+flow.getConnectedEdges('1')   // all edges touching node '1'
+flow.getIncomers('3')         // nodes with edges pointing to '3'
+flow.getOutgoers('1')         // nodes that '1' points to
+```
+
+### Export / Import
+
+```tsx
+const json = flow.toJSON()   // { nodes, edges, viewport }
+flow.fromJSON(json)           // restore state
+
+// Save to localStorage
+localStorage.setItem('my-flow', JSON.stringify(flow.toJSON()))
+```
+
+### CSS Styles
+
+```tsx
+import { flowStyles } from '@pyreon/flow'
+
+// Inject once — provides animated edges, hover states, transitions
+const style = document.createElement('style')
+style.textContent = flowStyles
+document.head.appendChild(style)
+```
+
+## Event Callbacks
+
+```tsx
+flow.onConnect((connection) => console.log('Connected:', connection))
+flow.onNodesChange((changes) => console.log('Changed:', changes))
+flow.onNodeClick((node) => console.log('Clicked:', node.id))
+flow.onEdgeClick((edge) => console.log('Edge clicked:', edge.id))
+flow.onNodeDragStart((node) => console.log('Drag start:', node.id))
+flow.onNodeDragEnd((node) => console.log('Drag end:', node.id))
+flow.onNodeDoubleClick((node) => console.log('Double-click:', node.id))
+
+// All return unsubscribe functions
+const unsub = flow.onConnect(handler)
+unsub()  // remove listener
+```
+
+## Edge Path Utilities
+
+For custom edge rendering:
+
+```tsx
+import { getBezierPath, getSmoothStepPath, getStraightPath, getStepPath, getWaypointPath } from '@pyreon/flow'
+
+const { path, labelX, labelY } = getBezierPath({
+  sourceX: 0, sourceY: 0, sourcePosition: Position.Right,
+  targetX: 200, targetY: 100, targetPosition: Position.Left,
+})
+```
+
+## API Reference
+
+| API | Description |
+|---|---|
+| `createFlow(config)` | Create flow instance |
+| `flow.nodes` / `edges` / `viewport` | Reactive signals |
+| `flow.addNode()` / `removeNode()` / `updateNode()` | Node CRUD |
+| `flow.addEdge()` / `removeEdge()` / `reconnectEdge()` | Edge CRUD |
+| `flow.selectNode()` / `selectAll()` / `clearSelection()` / `deleteSelected()` | Selection |
+| `flow.zoomIn()` / `zoomOut()` / `fitView()` / `panTo()` / `focusNode()` | Viewport |
+| `flow.layout(algorithm, options)` | Auto-layout (elkjs) |
+| `flow.copySelected()` / `paste()` | Clipboard |
+| `flow.pushHistory()` / `undo()` / `redo()` | History |
+| `flow.searchNodes()` / `findNodes()` | Search |
+| `flow.toJSON()` / `fromJSON()` | Serialize |
+| `flow.getSnapLines()` | Helper lines |
+| `flow.getOverlappingNodes()` / `resolveCollisions()` | Collision |
+| `flow.getProximityConnection()` | Proximity connect |
+| `flow.setNodeExtent()` | Drag boundaries |
+| `flow.getChildNodes()` / `getAbsolutePosition()` | Sub-flows |
+| `flow.animateViewport()` | Smooth transitions |
+| `flow.batch()` | Batch operations |
+| `flow.dispose()` | Cleanup |
+
+## Components
+
+| Component | Description |
+|---|---|
+| `<Flow>` | Main container — renders nodes, edges, handles interactions |
+| `<Background>` | Dot/line/cross pattern |
+| `<MiniMap>` | Overview with viewport rect + click navigation |
+| `<Controls>` | Zoom buttons with percentage |
+| `<Handle>` | Connection point on nodes |
+| `<Panel>` | Positioned overlay |
+| `<NodeResizer>` | Drag-to-resize handles |
+| `<NodeToolbar>` | Floating toolbar on select |
