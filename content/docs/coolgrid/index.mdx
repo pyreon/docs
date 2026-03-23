@@ -58,8 +58,8 @@ You can customize the column count to any number (e.g., 24 columns for finer con
 
 The grid uses Pyreon's context system to cascade configuration from parent to child:
 
-1. **Container** sets the grid config (columns, gap, gutter, padding) and provides it via context using `pushContext`.
-2. **Row** reads the Container's config from context via `useContext`. It can override `columns` and `gap`. Row then pushes its own config into context for child columns.
+1. **Container** sets the grid config (columns, gap, gutter, padding) and provides it via context using `provide()`.
+2. **Row** reads the Container's config from context via `useContext`. It can override `columns` and `gap`. Row then provides its own config into context for child columns.
 3. **Col** reads the Row's config from context to calculate its width percentage and internal padding.
 
 This means you configure the grid once at the Container level, and Rows and Cols automatically inherit those settings. If you need a Row with different settings, you can override them at the Row level.

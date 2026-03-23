@@ -126,7 +126,7 @@ Pyreon components are typed using the `ComponentFn` type, which is a generic fun
 import type { ComponentFn, Props, VNode, VNodeChild } from "@pyreon/core"
 
 // The ComponentFn type
-type ComponentFn<P extends Props = Props> = (props: P) => VNode | null
+type ComponentFn<P extends Props = Props> = (props: P) => VNodeChild
 
 // Type your props explicitly
 interface UserCardProps {
@@ -693,6 +693,35 @@ function ThemedButton() {
   )
 }
 ```
+
+### provide
+
+Provide a context value to all descendants. Automatically handles cleanup on unmount. This is the recommended way to provide context inside components.
+
+```tsx
+import { createContext, provide, useContext } from "@pyreon/core"
+
+const ThemeContext = createContext("light")
+
+function ThemeProvider(props: { mode: string; children: VNodeChild }) {
+  provide(ThemeContext, props.mode)
+  return <>{props.children}</>
+}
+
+function ThemedContent() {
+  const mode = useContext(ThemeContext) // "dark"
+  return <div class={mode}>Themed content</div>
+}
+
+// Usage
+<ThemeProvider mode="dark">
+  <ThemedContent />
+</ThemeProvider>
+```
+
+<Callout type="info">
+`provide()` must be called during component setup (synchronously inside a component function). For SSR or test contexts outside component lifecycle, use the lower-level `pushContext`/`popContext` APIs.
+</Callout>
 
 ### withContext
 
@@ -1714,7 +1743,7 @@ Runs a component function in a tracked context so lifecycle hooks registered ins
 function runWithHooks<P extends Props>(
   fn: ComponentFn<P>,
   props: P,
-): { vnode: VNode | null; hooks: LifecycleHooks }
+): { vnode: VNodeChild; hooks: LifecycleHooks }
 ```
 
 ### propagateError
