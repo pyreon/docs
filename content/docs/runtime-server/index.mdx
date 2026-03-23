@@ -107,7 +107,7 @@ app.get("/page-b", async (req, res) => {
 Even with 50+ concurrent requests and async components that resolve in unpredictable order, each render sees only its own context values:
 
 ```tsx
-import { createContext, pushContext, useContext } from "@pyreon/core"
+import { createContext, provide, useContext } from "@pyreon/core"
 
 const RequestIdCtx = createContext("none")
 
@@ -118,7 +118,7 @@ async function AsyncReader(props: { delay: number }) {
 }
 
 function RequestWrapper(props: { reqId: string; delay: number }) {
-  pushContext(new Map([[RequestIdCtx.id, props.reqId]]))
+  provide(RequestIdCtx, props.reqId)
   return <AsyncReader delay={props.delay} />
 }
 
@@ -394,7 +394,7 @@ Suspense boundary resolutions inherit the context stack from their parent scope.
 const ThemeCtx = createContext("light")
 
 function App() {
-  pushContext(new Map([[ThemeCtx.id, "dark"]]))
+  provide(ThemeCtx, "dark")
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <AsyncContent />{/* useContext(ThemeCtx) returns "dark" */}
