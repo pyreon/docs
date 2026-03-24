@@ -344,10 +344,23 @@ const outer = effect(() => {
 
 ### Effect Cleanup
 
-Effects do not have a built-in cleanup mechanism like `watch`. For cleanup needs, use `watch` instead, or manage cleanup manually:
+Use `onCleanup` from `@pyreon/core` inside an effect to register a cleanup function. The cleanup runs before each re-execution and on final disposal:
 
 ```ts
-// Use watch for effects that need cleanup
+import { onCleanup } from "@pyreon/core"
+
+effect(() => {
+  const q = query()
+  const controller = new AbortController()
+  fetch(`/search?q=${q}`, { signal: controller.signal })
+
+  onCleanup(() => controller.abort()) // runs before next re-execution
+})
+```
+
+Alternatively, use `watch` when you need old/new values along with cleanup:
+
+```ts
 watch(
   () => query(),
   (q) => {
@@ -1160,12 +1173,12 @@ scope.runInScope(() => {
 })
 ```
 
-## runUntracked
+## runUntracked / untrack
 
-Run a function without registering any reactive dependencies. Useful inside effects when you need to read a signal without subscribing to it.
+Run a function without registering any reactive dependencies. Useful inside effects when you need to read a signal without subscribing to it. `untrack` is a shorter alias for `runUntracked` -- both are identical.
 
 ```ts
-import { runUntracked, signal, effect } from "@pyreon/reactivity"
+import { runUntracked, untrack, signal, effect } from "@pyreon/reactivity"
 
 const a = signal(1)
 const b = signal(2)
@@ -1472,6 +1485,8 @@ editor.redo() // current() === "Hello, World"
 <APICard name="effectScope" type="function" signature="effectScope(): EffectScope" description="Creates a new EffectScope for grouping and disposing effects together." />
 
 <APICard name="runUntracked" type="function" signature="runUntracked<T>(fn: () => T): T" description="Runs a function without tracking any reactive dependencies." />
+
+<APICard name="untrack" type="function" signature="untrack<T>(fn: () => T): T" description="Alias for runUntracked. Shorter name, identical behavior." />
 
 <APICard name="createSelector" type="function" signature="createSelector<T>(source: () => T): (key: T) => boolean" description="Creates an O(1) equality selector for efficient list item matching." />
 

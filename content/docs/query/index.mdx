@@ -216,11 +216,11 @@ const SearchResults = defineComponent(() => {
         type="text"
         placeholder="Search..."
         onInput={(e) => {
-          searchTerm.set((e.target as HTMLInputElement).value)
+          searchTerm.set(e.currentTarget.value)
           page.set(1) // Reset to page 1 on new search
         }}
       />
-      <select onChange={(e) => category.set((e.target as HTMLSelectElement).value)}>
+      <select onChange={(e) => category.set(e.currentTarget.value)}>
         <option value="all">All</option>
         <option value="posts">Posts</option>
         <option value="users">Users</option>
@@ -443,7 +443,7 @@ const UpdateTodo = defineComponent((props: { todo: Todo }) => {
         checked={() => props.todo.completed}
         onChange={(e) => {
           mutation.mutate({
-            completed: (e.target as HTMLInputElement).checked,
+            completed: e.currentTarget.checked,
           })
         }}
       />
@@ -619,11 +619,15 @@ const InfiniteScroll = defineComponent(() => {
       {/* Sentinel element -- triggers fetchNextPage when scrolled into view */}
       {() => query.hasNextPage() && (
         <div
-          n-inView={createInViewDirective(() => {
-            if (!query.isFetchingNextPage()) {
-              query.fetchNextPage()
-            }
-          })}
+          ref={(el: HTMLDivElement) => {
+            const observer = new IntersectionObserver(([entry]) => {
+              if (entry.isIntersecting && !query.isFetchingNextPage()) {
+                query.fetchNextPage()
+              }
+            })
+            observer.observe(el)
+            onCleanup(() => observer.disconnect())
+          }}
           class="loading-sentinel"
         >
           {() => query.isFetchingNextPage() && <Spinner />}
@@ -1068,12 +1072,11 @@ const GlobalLoadingBar = defineComponent(() => {
   const mutating = useIsMutating()
 
   return () => (
-    <div
-      class="global-loading-bar"
-      n-show={() => fetching() > 0 || mutating() > 0}
-    >
-      <div class="progress-bar" />
-    </div>
+    <Show when={() => fetching() > 0 || mutating() > 0}>
+      <div class="global-loading-bar">
+        <div class="progress-bar" />
+      </div>
+    </Show>
   )
 })
 ```

@@ -66,7 +66,6 @@ const SearchBox = defineComponent((props: { placeholder: string }) => {
   // Register lifecycle hooks
   onMount(() => {
     inputRef.current?.focus()
-    return undefined
   })
 
   // Set up effects
@@ -88,7 +87,7 @@ const SearchBox = defineComponent((props: { placeholder: string }) => {
         ref={inputRef}
         placeholder={props.placeholder}
         value={() => query()}
-        onInput={(e) => query.set((e.target as HTMLInputElement).value)}
+        onInput={(e) => query.set(e.currentTarget.value)}
       />
       <ul>
         {() => results().map(r => <li>{r}</li>)}
@@ -473,7 +472,6 @@ function AutoFocusInput() {
 
   onMount(() => {
     inputRef.current?.focus()
-    return undefined
   })
 
   return <input ref={inputRef} />
@@ -601,6 +599,46 @@ function ChatMessages(props: { messages: () => Message[] }) {
       {() => props.messages().map(m => <div class="message">{m.text}</div>)}
     </div>
   )
+}
+```
+
+### onCleanup
+
+Register a cleanup function that runs when the current reactive scope is disposed. Inside an `effect`, `onCleanup` runs before each re-execution and on final disposal. Inside a component, it runs when the component unmounts. This is the idiomatic way to clean up resources in effects.
+
+```tsx
+import { onCleanup } from "@pyreon/core"
+import { signal, effect } from "@pyreon/reactivity"
+
+function WebSocketComponent(props: { url: () => string }) {
+  const messages = signal<string[]>([])
+
+  effect(() => {
+    const ws = new WebSocket(props.url())
+    ws.onmessage = (e) => messages.update(m => [...m, e.data])
+
+    // Runs before next effect re-execution and on unmount
+    onCleanup(() => ws.close())
+  })
+
+  return <ul>{() => messages().map(m => <li>{m}</li>)}</ul>
+}
+```
+
+```tsx
+// Cleanup a timer inside an effect
+function Poller(props: { interval: () => number }) {
+  const data = signal<string>("")
+
+  effect(() => {
+    const id = setInterval(() => {
+      fetch("/api/data").then(r => r.text()).then(t => data.set(t))
+    }, props.interval())
+
+    onCleanup(() => clearInterval(id))
+  })
+
+  return <p>{data()}</p>
 }
 ```
 
@@ -840,7 +878,6 @@ function AutoFocusInput() {
 
   onMount(() => {
     inputRef.current?.focus()
-    return undefined
   })
 
   return <input ref={inputRef} placeholder="Auto-focused" />
@@ -902,7 +939,6 @@ function Parent() {
 
   onMount(() => {
     ref.current?.focus()
-    return undefined
   })
 
   return <FancyInput inputRef={ref} placeholder="Type here..." />
@@ -921,8 +957,6 @@ function DrawingCanvas() {
 
     ctx.fillStyle = "#007bff"
     ctx.fillRect(10, 10, 100, 100)
-
-    return undefined
   })
 
   return <canvas ref={canvasRef} width={400} height={300} />
@@ -1438,6 +1472,81 @@ function mapArray<T, U>(
 ): () => U[]
 ```
 
+## Prop Utilities
+
+### splitProps
+
+Split a props object into two parts: one with the specified keys, and one with the rest. Both parts preserve reactivity -- accessing a property on either part reads the original prop.
+
+```tsx
+import { splitProps } from "@pyreon/core"
+
+function Button(props: { label: string; icon?: string } & PyreonHTMLAttributes<HTMLButtonElement>) {
+  const [own, html] = splitProps(props, ["label", "icon"])
+
+  return (
+    <button {...html}>
+      <Show when={() => !!own.icon}>
+        <Icon name={own.icon!} />
+      </Show>
+      {own.label}
+    </button>
+  )
+}
+```
+
+```ts
+function splitProps<T extends object, K extends keyof T>(
+  props: T,
+  keys: K[],
+): [Pick<T, K>, Omit<T, K>]
+```
+
+### mergeProps
+
+Merge multiple props objects into one, with later sources overriding earlier ones. The merged object is lazy -- property reads go through the original sources, preserving reactivity.
+
+```tsx
+import { mergeProps } from "@pyreon/core"
+
+function Button(props: { size?: "sm" | "md" | "lg"; variant?: string }) {
+  const merged = mergeProps({ size: "md", variant: "primary" }, props)
+
+  return (
+    <button class={() => `btn-${merged.size} btn-${merged.variant}`}>
+      {merged.children}
+    </button>
+  )
+}
+```
+
+```ts
+function mergeProps<T extends object[]>(...sources: T): MergedProps<T>
+```
+
+### createUniqueId
+
+Generate a unique string ID that is stable across server and client renders. Use this for linking labels to inputs, ARIA attributes, and other cases where you need a deterministic unique ID.
+
+```tsx
+import { createUniqueId } from "@pyreon/core"
+
+function LabeledInput(props: { label: string }) {
+  const id = createUniqueId()
+
+  return (
+    <div>
+      <label for={id}>{props.label}</label>
+      <input id={id} />
+    </div>
+  )
+}
+```
+
+```ts
+function createUniqueId(): string
+```
+
 ## Telemetry
 
 Register global error handlers for monitoring and reporting. This integrates with services like Sentry, Datadog, or custom error tracking.
@@ -1572,7 +1681,7 @@ const ContactForm = defineComponent(() => {
           <label>Name</label>
           <input
             value={() => name().value}
-            onInput={(e) => updateField(name, "name", (e.target as HTMLInputElement).value)}
+            onInput={(e) => updateField(name, "name", e.currentTarget.value)}
           />
           <Show when={() => name().touched && name().error}>
             <span class="error">{name().error}</span>
@@ -1583,7 +1692,7 @@ const ContactForm = defineComponent(() => {
           <input
             type="email"
             value={() => email().value}
-            onInput={(e) => updateField(email, "email", (e.target as HTMLInputElement).value)}
+            onInput={(e) => updateField(email, "email", e.currentTarget.value)}
           />
           <Show when={() => email().touched && email().error}>
             <span class="error">{email().error}</span>
@@ -1593,7 +1702,7 @@ const ContactForm = defineComponent(() => {
           <label>Message</label>
           <textarea
             value={() => message().value}
-            onInput={(e) => updateField(message, "message", (e.target as HTMLTextAreaElement).value)}
+            onInput={(e) => updateField(message, "message", e.currentTarget.value)}
           />
           <Show when={() => message().touched && message().error}>
             <span class="error">{message().error}</span>
@@ -1780,4 +1889,31 @@ Dispatch an error to the nearest active `ErrorBoundary`. Returns `true` if the b
 
 <APICard name="onUnmount" type="hook" signature="onUnmount(callback: () => void): void" description="Registers a callback to run when the component is removed from the DOM. Use for cleanup not covered by onMount's return value." />
 
+<APICard name="onCleanup" type="hook" signature="onCleanup(fn: () => void): void" description="Registers a cleanup function for the current reactive scope. Inside effects, runs before each re-execution and on disposal. Inside components, runs on unmount." />
+
 <APICard name="onUpdate" type="hook" signature="onUpdate(callback: () => void): void" description="Registers a callback to run after each reactive update within the component. Fires via microtask after effects settle, so the DOM is up-to-date." />
+
+<APICard name="splitProps" type="function" signature="splitProps<T, K extends keyof T>(props: T, keys: K[]): [Pick<T, K>, Omit<T, K>]" description="Splits a props object into two parts preserving reactivity. First part has the specified keys, second has the rest." />
+
+<APICard name="mergeProps" type="function" signature="mergeProps<T extends object[]>(...sources: T): MergedProps<T>" description="Merges multiple props objects with later sources overriding earlier ones. Preserves reactivity through lazy property access." />
+
+<APICard name="createUniqueId" type="function" signature="createUniqueId(): string" description="Generates a unique string ID that is stable across server and client renders. Use for ARIA attributes and label-input linking." />
+
+<APICard name="cx" type="function" signature="cx(...args: ClassValue[]): string" description="Utility for composing class names from strings, arrays, objects, or nested combinations. Used internally by the class prop." />
+
+## Type Exports
+
+| Type | Description |
+|------|-------------|
+| `ComponentFn<P>` | `(props: P) => VNodeChild` -- component function type |
+| `VNode` | Virtual DOM node with type, props, children, and key |
+| `VNodeChild` | Union type for all renderable values (VNode, string, number, null, boolean, function, array) |
+| `Props` | Base props interface for elements and components |
+| `Ref<T>` | Mutable ref container `{ current: T \| null }` |
+| `ExtractProps<T>` | Extracts the props type from a `ComponentFn<P>`, or passes through if already a props object |
+| `HigherOrderComponent<HOP, P>` | Typed higher-order component pattern `(component: ComponentFn<P>) => ComponentFn<P & HOP>` |
+| `PyreonHTMLAttributes<E>` | HTML attribute types parameterized by element type (e.g., `PyreonHTMLAttributes<HTMLInputElement>`) |
+| `CSSProperties` | Typed CSS property object for the `style` prop |
+| `StyleValue` | Union type for style prop values: `string \| CSSProperties \| (() => string \| CSSProperties)` |
+| `ClassValue` | Union type for the `class` prop: `string \| boolean \| null \| undefined \| ClassValue[] \| Record<string, boolean \| (() => boolean)>` |
+| `TargetedEvent<E>` | Event type where `currentTarget` is typed as `E` (e.g., `TargetedEvent<HTMLInputElement>`) |

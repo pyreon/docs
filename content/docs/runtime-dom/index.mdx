@@ -3,7 +3,7 @@ title: "@pyreon/runtime-dom"
 description: Surgical signal-to-DOM renderer with no virtual DOM diffing, hydration, transitions, and template cloning.
 ---
 
-`@pyreon/runtime-dom` is Pyreon's browser renderer. It mounts VNode trees directly to the DOM using surgical signal-driven updates -- no virtual DOM diffing. It supports hydration, CSS transitions, template cloning, keep-alive caching, and custom directives.
+`@pyreon/runtime-dom` is Pyreon's browser renderer. It mounts VNode trees directly to the DOM using surgical signal-driven updates -- no virtual DOM diffing. It supports hydration, CSS transitions, template cloning, and keep-alive caching.
 
 <PackageBadge name="@pyreon/runtime-dom" href="/docs/runtime-dom" />
 
@@ -438,11 +438,11 @@ _tpl('<div class="box"><span></span></div>', (__root) => {
 
 `_tpl` uses a global `Map<string, HTMLTemplateElement>` cache. The same HTML string always reuses the same parsed template, so even components that appear thousands of times (e.g., list items) only parse the HTML once.
 
-## Props and Directives
+## Props
 
 ### applyProp / applyProps
 
-Apply props to a DOM element. Handles event listeners, reactive values, static attributes, classes, styles, innerHTML sanitization, and custom directives.
+Apply props to a DOM element. Handles event listeners, reactive values, static attributes, classes, styles, and innerHTML sanitization.
 
 ```ts
 import { applyProp, applyProps } from "@pyreon/runtime-dom"
@@ -507,6 +507,32 @@ function Counter() {
 
 The event name is derived by lowercasing the third character and taking the rest: `onClick` becomes `click`, `onMouseEnter` becomes `mouseenter`.
 
+#### Typed Event Targets
+
+Event handlers receive a `TargetedEvent<E>` where `currentTarget` is typed to the element. No more manual casts:
+
+```tsx
+// currentTarget is typed as HTMLInputElement -- no cast needed
+<input onInput={(e) => name.set(e.currentTarget.value)} />
+
+// currentTarget is typed as HTMLSelectElement
+<select onChange={(e) => choice.set(e.currentTarget.value)}>
+  <option value="a">A</option>
+  <option value="b">B</option>
+</select>
+```
+
+The `TargetedEvent` type is exported from `@pyreon/core` for use in explicit type annotations.
+
+#### Supported Events
+
+In addition to standard DOM events (`onClick`, `onInput`, `onChange`, `onKeyDown`, etc.), Pyreon supports:
+
+- `onBeforeInput` -- fires before the input value changes, with access to `inputType` and `data`
+- `onInvalid` -- fires when a form element fails constraint validation
+- `onResize` -- fires when the element is resized (useful with `ResizeObserver`-backed elements)
+- `onToggle` -- fires when a `<details>` element is opened or closed
+
 #### Reactive Props
 
 Any non-event function prop is treated as reactive. A `renderEffect` re-evaluates it whenever its signal dependencies change:
@@ -525,17 +551,34 @@ Each reactive prop creates one lightweight `renderEffect`. When the signal chang
 
 #### Classes
 
-The `class` and `className` props are always set via `setAttribute("class", ...)`. Both static and reactive values are supported:
+The `class` prop accepts strings, arrays, objects, or nested combinations. Under the hood, values are resolved using `cx()` (exported from `@pyreon/core`). Both static and reactive values are supported:
 
 ```tsx
-// Static class
+// Static string
 <div class="card shadow" />
 
-// Reactive class
+// Reactive string
 <div class={() => `card ${selected() ? "selected" : ""}`} />
+
+// Array of classes (falsy values are filtered out)
+<div class={["card", isActive() && "active", size() && "large"]} />
+
+// Object syntax (keys with truthy values are included)
+<div class={{ card: true, active: isActive(), disabled: isDisabled() }} />
+
+// Nested mix of strings, arrays, and objects
+<div class={["base", { active: isActive() }, size() && "lg"]} />
 
 // Using className (alias)
 <div className="container" />
+```
+
+You can also use `cx()` directly for composing class names outside of JSX:
+
+```ts
+import { cx } from "@pyreon/core"
+
+const className = cx("btn", props.variant && `btn-${props.variant}`, { disabled: props.disabled })
 ```
 
 #### Styles
@@ -558,6 +601,14 @@ The `style` prop accepts a string or an object:
 ```
 
 Object styles use `Object.assign(el.style, value)`, so only the specified properties are updated.
+
+**Auto-px for numeric values:** When a style property expects a length and you pass a number, Pyreon automatically appends `px`. This applies to properties like `width`, `height`, `padding`, `margin`, `fontSize`, `borderRadius`, `top`, `left`, etc. Properties that are unitless (like `opacity`, `zIndex`, `flex`, `lineHeight`) are left as-is.
+
+```tsx
+// Numbers are auto-converted to px for length properties
+<div style={{ width: 200, height: 100, padding: 16, opacity: 0.5 }} />
+// Equivalent to: style="width: 200px; height: 100px; padding: 16px; opacity: 0.5"
+```
 
 #### Data Attributes
 
@@ -646,106 +697,6 @@ For trusted HTML content, use `dangerouslySetInnerHTML` with an `__html` propert
 ```tsx
 // Raw HTML -- you own sanitization
 <div dangerouslySetInnerHTML={{ __html: trustedHtml }} />
-```
-
-### Custom Directives
-
-Directives are special props prefixed with `n-` that receive the element and an `addCleanup` callback. They provide a way to encapsulate imperative DOM logic:
-
-```ts
-import type { Directive } from "@pyreon/runtime-dom"
-
-// Simple directive -- no cleanup needed
-const nFocus: Directive = (el) => {
-  el.focus()
-}
-
-// Directive with reactive value and cleanup
-const nTooltip = (text: () => string): Directive => (el, addCleanup) => {
-  const dispose = renderEffect(() => {
-    el.title = text()
-  })
-  addCleanup(dispose)
-}
-
-// Usage in JSX:
-<input n-focus={nFocus} />
-<div n-tooltip={nTooltip(() => label())}>Hover me</div>
-```
-
-#### Directive Type
-
-```ts
-type Directive = (
-  el: HTMLElement,
-  addCleanup: (fn: () => void) => void
-) => void
-```
-
-#### Built-in n-show Directive
-
-The `n-show` directive toggles `display` based on a reactive boolean:
-
-```tsx
-<div n-show={() => isVisible()}>
-  This content is shown/hidden via display: none
-</div>
-```
-
-Unlike conditional rendering, `n-show` keeps the element in the DOM and preserves all state. It simply toggles `el.style.display` between `""` and `"none"`.
-
-#### Real-World Directive Examples
-
-**Click outside directive:**
-```ts
-const nClickOutside = (handler: () => void): Directive =>
-  (el, addCleanup) => {
-    const listener = (e: MouseEvent) => {
-      if (!el.contains(e.target as Node)) handler()
-    }
-    document.addEventListener("click", listener)
-    addCleanup(() => document.removeEventListener("click", listener))
-  }
-
-// Usage:
-<div n-clickOutside={nClickOutside(() => closeDropdown())}>
-  <DropdownContent />
-</div>
-```
-
-**Intersection observer directive:**
-```ts
-const nInView = (callback: (visible: boolean) => void): Directive =>
-  (el, addCleanup) => {
-    const observer = new IntersectionObserver(([entry]) => {
-      callback(entry!.isIntersecting)
-    })
-    observer.observe(el)
-    addCleanup(() => observer.disconnect())
-  }
-
-// Usage:
-<div n-inView={nInView((visible) => {
-  if (visible) loadMoreItems()
-})}>
-  Loading trigger
-</div>
-```
-
-**Auto-resize textarea directive:**
-```ts
-const nAutoResize: Directive = (el, addCleanup) => {
-  const resize = () => {
-    el.style.height = "auto"
-    el.style.height = el.scrollHeight + "px"
-  }
-  el.addEventListener("input", resize)
-  resize()
-  addCleanup(() => el.removeEventListener("input", resize))
-}
-
-// Usage:
-<textarea n-autoResize={nAutoResize} />
 ```
 
 ### HTML Sanitization
@@ -1271,16 +1222,16 @@ function ExpensiveForm() {
 
   return () => (
     <div class="form-container" onScroll={(e) =>
-      scrollPos.set((e.target as HTMLElement).scrollTop)
+      scrollPos.set(e.currentTarget.scrollTop)
     }>
       <input value={() => name()} onInput={(e) =>
-        name.set((e.target as HTMLInputElement).value)
+        name.set(e.currentTarget.value)
       } />
       <input value={() => email()} onInput={(e) =>
-        email.set((e.target as HTMLInputElement).value)
+        email.set(e.currentTarget.value)
       } />
       <textarea value={() => bio()} onInput={(e) =>
-        bio.set((e.target as HTMLTextAreaElement).value)
+        bio.set(e.currentTarget.value)
       } />
     </div>
   )
@@ -1419,6 +1370,7 @@ function StaggeredList() {
 | `_tpl` | Compiler-emitted template instantiation |
 | `applyProp` | Apply a single prop to an element |
 | `applyProps` | Apply all props to an element |
+| `cx` | Compose class names from strings, arrays, objects (re-exported from `@pyreon/core`) |
 | `sanitizeHtml` | Sanitize an HTML string |
 | `setSanitizer` | Set a custom HTML sanitizer |
 | `Transition` | CSS enter/leave animation component |
@@ -1431,7 +1383,6 @@ function StaggeredList() {
 
 | Type | Description |
 |------|-------------|
-| `Directive` | `(el: HTMLElement, addCleanup: (fn: () => void) => void) => void` |
 | `SanitizeFn` | `(html: string) => string` |
 | `TransitionProps` | Props for the Transition component |
 | `TransitionGroupProps` | Props for the TransitionGroup component |

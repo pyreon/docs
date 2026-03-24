@@ -643,7 +643,7 @@ const Modal = defineComponent<{ onClose: () => void }>((props) => {
   const { lock, unlock } = useScrollLock()
 
   // Lock scroll when modal opens, unlock when it closes
-  onMount(() => { lock(); return undefined })
+  onMount(() => { lock() })
   onUnmount(unlock)
 
   return () => (
@@ -1152,7 +1152,7 @@ Multiple calls to `lock()` from the same hook instance are idempotent -- calling
 const FullScreenOverlay = defineComponent<{ onClose: () => void }>((props) => {
   const { lock, unlock } = useScrollLock()
 
-  onMount(() => { lock(); return undefined })
+  onMount(() => { lock() })
   onUnmount(unlock)
 
   return () => (
@@ -1330,7 +1330,7 @@ const AccessibleModal = defineComponent<{
 
   // Lock page scroll
   const { lock, unlock } = useScrollLock()
-  onMount(() => { lock(); return undefined })
+  onMount(() => { lock() })
   onUnmount(unlock)
 
   // Respect reduced motion

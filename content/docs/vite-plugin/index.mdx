@@ -486,6 +486,38 @@ In SSR mode, the plugin injects Vite's HMR client into the HTML response via `se
 
 This happens transparently -- you do not need to add any HMR scripts to your HTML template.
 
+### Signal-Preserving HMR
+
+In development mode, the plugin rewrites top-level `signal()` calls to preserve their values across hot module reloads. Without this, every HMR update would reset all signal state to initial values.
+
+**How it works:**
+
+1. Top-level `signal()` calls are rewritten to `__hmr_signal(moduleId, name, signal, initialValue)`.
+2. On `import.meta.hot.dispose`, signal values are saved to `globalThis.__pyreon_hmr_registry__`.
+3. When the module reloads, signals restore their previous values instead of reinitializing.
+
+This means you can edit a component's rendering logic while keeping your application state intact -- counters keep their count, forms keep their input, and lists keep their items.
+
+The HMR helpers are served from a virtual module `virtual:pyreon/hmr-runtime`. This is handled automatically by the plugin; no configuration is needed.
+
+### Auto Signal Debug Naming
+
+In development mode, the plugin automatically injects debug names into `signal()` calls based on the variable name. This makes signals easier to identify in devtools and debug output.
+
+```tsx
+// Your source code
+const count = signal(0)
+const userName = signal("Alice")
+
+// What the plugin transforms it to (dev only)
+const count = signal(0, { name: "count" })
+const userName = signal("Alice", { name: "userName" })
+```
+
+This applies to all `signal()` calls -- both module-scope and function-scope. Signals that already have an options argument are skipped. Module-scope signals get their names via the `__hmr_signal` rewrite; function-scope signals get names via an injected options argument.
+
+Auto signal naming is not applied in production builds -- the options arguments are tree-shaken away.
+
 ---
 
 ## Full SSR Example

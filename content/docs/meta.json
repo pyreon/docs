@@ -15,6 +15,7 @@
     "head",
     "server",
     "vite-plugin",
+    "typescript",
     "mcp",
     "---Compatibility Layers---",
     "react-compat",
