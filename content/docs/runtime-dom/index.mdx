@@ -77,7 +77,7 @@ When `mount` is called, the following lifecycle occurs:
 
 1. **Container cleared** -- All existing DOM children are removed.
 2. **VNode tree walked** -- `mountChild` recursively processes each node.
-3. **Components initialized** -- Each component function is called once. An `EffectScope` is created for the component so all signals and effects are tracked.
+3. **Components initialized** -- Each component function is called once. An `EffectScope` is created for the component so all signals and effects are tracked. If a component throws during setup or render, the error is logged via `console.error` instead of being silently swallowed.
 4. **DOM elements created** -- `document.createElement` for element VNodes (or `cloneNode` for template-optimized elements).
 5. **Props applied** -- Event listeners registered, reactive effects created for dynamic attributes.
 6. **Children mounted** -- Recursive depth-first mount of child VNodes.
@@ -1368,6 +1368,8 @@ function StaggeredList() {
 | `mountChild` | Mount a single child node (internal) |
 | `createTemplate` | Create a template-cloning factory |
 | `_tpl` | Compiler-emitted template instantiation |
+| `_bindText` | Compiler-emitted text binding for simple signal identifiers. Falls back to `renderEffect` if the source lacks `.direct()` |
+| `_bindDirect` | Compiler-emitted direct attribute binding. Falls back to `renderEffect` if the source lacks `.direct()` |
 | `applyProp` | Apply a single prop to an element |
 | `applyProps` | Apply all props to an element |
 | `cx` | Compose class names from strings, arrays, objects (re-exported from `@pyreon/core`) |

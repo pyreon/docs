@@ -421,8 +421,9 @@ jsx(Card, {
 Pyreon provides comprehensive JSX type definitions for all standard HTML and SVG elements. Each element type has its own attribute interface with proper typing:
 
 - **HTML elements**: `div`, `span`, `button`, `input`, `form`, `a`, `img`, etc.
-- **SVG elements**: `svg`, `path`, `circle`, `rect`, `g`, `text`, etc.
-- **Special attributes**: `class`, `style`, `ref`, `key`, `innerHTML`, `dangerouslySetInnerHTML`
+- **SVG elements**: `svg`, `path`, `circle`, `rect`, `g`, `text`, etc. -- includes 40+ SVG-specific attributes for gradients, patterns, markers, clipping, masking, filters, presentation, text, and path elements (no catch-all index signature)
+- **HTML global attributes**: `class`, `style`, `ref`, `key`, `innerHTML`, `dangerouslySetInnerHTML`, `contentEditable`, `spellCheck`, `autoCapitalize`, `translate`, `enterKeyHint`, `inputMode`, `slot`, `part`, `popover`, `popoverTarget`, `popoverTargetAction`, `inert`, `is`
+- **Element-specific attributes**: input (`capture`, `formNoValidate`), anchor (`hreflang`, `ping`, `referrerPolicy`), img (`fetchPriority`), video (`disablePictureInPicture`, `disableRemotePlayback`), form (`acceptCharset`, `rel`)
 - **Event handlers**: `onClick`, `onInput`, `onKeyDown`, `onSubmit`, etc.
 - **ARIA attributes**: `aria-label`, `aria-hidden`, `aria-expanded`, etc.
 - **Reactive props**: many attributes accept `() => T` accessors for fine-grained reactivity
@@ -864,6 +865,10 @@ import { createRef } from "@pyreon/core"
 interface Ref<T = unknown> {
   current: T | null
 }
+
+type RefCallback<T = unknown> = (el: T | null) => void
+
+type RefProp<T = unknown> = Ref<T> | RefCallback<T>
 
 function createRef<T = unknown>(): Ref<T>
 ```
@@ -1910,6 +1915,8 @@ Dispatch an error to the nearest active `ErrorBoundary`. Returns `true` if the b
 | `VNodeChild` | Union type for all renderable values (VNode, string, number, null, boolean, function, array) |
 | `Props` | Base props interface for elements and components |
 | `Ref<T>` | Mutable ref container `{ current: T \| null }` |
+| `RefCallback<T>` | Function ref callback `(el: T \| null) => void` -- called with the element on mount and `null` on unmount |
+| `RefProp<T>` | Union of `Ref<T> \| RefCallback<T>` -- the type accepted by the JSX `ref` prop |
 | `ExtractProps<T>` | Extracts the props type from a `ComponentFn<P>`, or passes through if already a props object |
 | `HigherOrderComponent<HOP, P>` | Typed higher-order component pattern `(component: ComponentFn<P>) => ComponentFn<P & HOP>` |
 | `PyreonHTMLAttributes<E>` | HTML attribute types parameterized by element type (e.g., `PyreonHTMLAttributes<HTMLInputElement>`) |

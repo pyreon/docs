@@ -174,6 +174,8 @@ The Pyreon compiler transform does three things:
 
 3. **Template emission** -- Element trees with 2 or more consecutive DOM elements (no components) are compiled into `_tpl()` calls. Templates use `cloneNode` internally, which is faster than creating elements one by one.
 
+   Within templates, the compiler emits `_bindText` only for **simple identifiers** (e.g., `count()`, `name()`). Property access calls like `value.toLocaleString()` or `row.label()` use `_bind()` instead, which preserves the correct `this` context. The `_bindText` and `_bindDirect` runtime helpers include a fallback to `renderEffect` when the source is a non-signal callable (i.e., lacks `.direct()`), making them safe for any callable value.
+
 Compiler warnings are surfaced in the terminal via Vite's warning system, including the file path, line, and column number.
 
 ### File Extensions
