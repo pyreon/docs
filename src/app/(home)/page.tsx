@@ -125,6 +125,59 @@ const fundamentalsPackages = [
     description: 'TanStack Virtual adapter for efficient virtual scrolling.',
     href: '/docs/virtual',
   },
+  {
+    title: 'Machine',
+    description: 'Reactive state machines with type-safe transitions.',
+    href: '/docs/machine',
+  },
+  {
+    title: 'Storage',
+    description:
+      'Reactive client-side storage — localStorage, sessionStorage, cookies, IndexedDB.',
+    href: '/docs/storage',
+  },
+  {
+    title: 'Permissions',
+    description: 'Type-safe reactive permissions — RBAC, ABAC, feature flags.',
+    href: '/docs/permissions',
+  },
+  {
+    title: 'Hotkeys',
+    description: 'Keyboard shortcut management with scopes and modifier keys.',
+    href: '/docs/hotkeys',
+  },
+]
+
+const ecosystemPackages = [
+  {
+    title: 'Document',
+    description:
+      'Universal document rendering — one template, 14+ output formats.',
+    href: '/docs/document',
+  },
+  {
+    title: 'Charts',
+    description:
+      'Reactive ECharts bridge with lazy loading and signal-driven updates.',
+    href: '/docs/charts',
+  },
+  {
+    title: 'Code',
+    description:
+      'Reactive CodeMirror 6 code editor with signals, minimap, and diff editor.',
+    href: '/docs/code',
+  },
+  {
+    title: 'Flow',
+    description:
+      'Reactive flow diagrams with signal-native nodes, pan/zoom, and auto-layout.',
+    href: '/docs/flow',
+  },
+  {
+    title: 'Feature',
+    description: 'Schema-driven CRUD primitives with auto-generated hooks.',
+    href: '/docs/feature',
+  },
 ]
 
 const uiPackages = [
@@ -161,6 +214,24 @@ const uiPackages = [
     description:
       '120+ animation presets and composition utilities for transitions.',
     href: '/docs/kinetic-presets',
+  },
+  {
+    title: 'Kinetic',
+    description:
+      'CSS-transition animation components — Transition, Stagger, Collapse.',
+    href: '/docs/kinetic',
+  },
+  {
+    title: 'Attrs',
+    description:
+      'Chainable component factory for composing default props and behaviors.',
+    href: '/docs/attrs',
+  },
+  {
+    title: 'Rocketstyle',
+    description:
+      'Multi-dimensional style composition — themes, sizes, variants, states.',
+    href: '/docs/rocketstyle',
   },
 ]
 
@@ -247,7 +318,7 @@ export default function HomePage() {
         <p className="max-w-2xl text-lg leading-relaxed text-fd-muted-foreground md:text-xl">
           A signal-based UI framework with fine-grained reactivity, no virtual
           DOM, streaming SSR, and compatibility layers for React, Vue, Solid,
-          and Preact — plus a full ecosystem of 27 packages.
+          and Preact — plus a full ecosystem of 50+ packages.
         </p>
 
         <div className="flex flex-wrap justify-center gap-3">
@@ -274,7 +345,7 @@ export default function HomePage() {
         {/* Stats */}
         <div className="mt-4 flex flex-wrap justify-center gap-10">
           <div className="stat-pill">
-            <span className="stat-value">27</span>
+            <span className="stat-value">50+</span>
             <span className="stat-label">Packages</span>
           </div>
           <div className="stat-pill">
@@ -392,18 +463,18 @@ export default function HomePage() {
         </Cards>
       </section>
 
-      {/* Fundamentals */}
+      {/* State & Data */}
       <section className="w-full max-w-6xl px-6 py-20">
         <div className="mb-10 flex flex-col items-center gap-3">
           <span className="rounded-full bg-blue-500/10 px-4 py-1 text-sm font-medium text-blue-600 dark:text-blue-400">
             @pyreon/*
           </span>
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Ecosystem
+            State & Data
           </h2>
           <p className="max-w-lg text-center text-fd-muted-foreground">
-            State management, forms, i18n, data fetching, tables, and virtual
-            scrolling — all signal-native.
+            State management, forms, i18n, data fetching, permissions, storage,
+            and more — all signal-native.
           </p>
         </div>
         <Cards>
@@ -433,6 +504,32 @@ export default function HomePage() {
         </div>
         <Cards>
           {uiPackages.map((pkg) => (
+            <Card
+              key={pkg.title}
+              title={pkg.title}
+              description={pkg.description}
+              href={pkg.href}
+            />
+          ))}
+        </Cards>
+      </section>
+
+      {/* Ecosystem */}
+      <section className="w-full max-w-6xl px-6 py-20">
+        <div className="mb-10 flex flex-col items-center gap-3">
+          <span className="rounded-full bg-rose-500/10 px-4 py-1 text-sm font-medium text-rose-600 dark:text-rose-400">
+            @pyreon/*
+          </span>
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Ecosystem
+          </h2>
+          <p className="max-w-lg text-center text-fd-muted-foreground">
+            Documents, charts, code editors, flow diagrams, and schema-driven
+            CRUD — specialized packages for rich applications.
+          </p>
+        </div>
+        <Cards>
+          {ecosystemPackages.map((pkg) => (
             <Card
               key={pkg.title}
               title={pkg.title}

@@ -13,7 +13,9 @@ interface PropTableProps {
   props: Prop[]
 }
 
-export function PropTable({ title, props }: PropTableProps): ReactNode {
+export function PropTable({ title, props = [] }: PropTableProps): ReactNode {
+  if (!props || props.length === 0) return null
+
   return (
     <div className="not-prose my-4 overflow-x-auto rounded-xl border border-fd-border">
       {title && (

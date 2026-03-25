@@ -35,6 +35,6 @@
     "@vitus-labs/tools-lint": "^1.15.4",
     "fumadocs-docgen": "^3.0.8",
     "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   }
 }
