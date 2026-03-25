@@ -12,7 +12,22 @@ updates:
       - dependencies
       - automated
     groups:
-      # Group minor/patch updates together
+      fumadocs:
+        patterns:
+          - "fumadocs-*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      types:
+        patterns:
+          - "@types/*"
       production:
         dependency-type: production
         update-types:
@@ -23,7 +38,6 @@ updates:
         update-types:
           - minor
           - patch
-    # Auto-merge patch updates
     commit-message:
       prefix: "chore(deps):"
 
