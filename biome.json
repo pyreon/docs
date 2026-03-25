@@ -1,22 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
-  "extends": ["@vitus-labs/tools-lint/biome"],
-  "files": {
-    "includes": [
-      "src/**/*.ts",
-      "src/**/*.tsx",
-      "source.config.ts",
-      "postcss.config.mjs",
-      "mdx-components.tsx"
-    ],
-    "ignoreUnknown": true
-  },
-  "linter": {
-    "rules": {
-      "correctness": {
-        "noUnusedImports": "warn",
-        "noUnusedVariables": "warn"
-      }
-    }
-  }
+	"$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
+	"files": {
+		"includes": [".vitepress/**/*.ts"],
+		"ignoreUnknown": true
+	},
+	"linter": {
+		"rules": {
+			"correctness": {
+				"noUnusedImports": "warn",
+				"noUnusedVariables": "warn"
+			}
+		}
+	}
 }

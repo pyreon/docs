@@ -7,34 +7,17 @@
   "license": "CC-BY-3.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "postinstall": "fumadocs-mdx",
-    "typecheck": "tsc --noEmit",
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format . --write",
-    "audit": "bun pm audit",
-    "check": "bun run typecheck && bun run lint && bun run build"
-  },
-  "dependencies": {
-    "fumadocs-core": "^16.7.4",
-    "fumadocs-mdx": "^14.2.11",
-    "fumadocs-ui": "^16.7.4",
-    "next": "^16.2.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "check": "bun run lint && bun run build"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.2",
-    "@types/mdx": "^2.0.13",
-    "@types/node": "^25.5.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitus-labs/tools-lint": "^1.15.4",
-    "fumadocs-docgen": "^3.0.8",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2"
+    "@biomejs/biome": "^2.4.8",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.16"
   }
 }
